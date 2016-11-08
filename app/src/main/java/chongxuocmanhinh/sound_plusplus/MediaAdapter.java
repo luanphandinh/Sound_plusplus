@@ -206,6 +206,47 @@ public class MediaAdapter extends BaseAdapter
             default:
                 throw new IllegalArgumentException("Invalid value for type: " + type);
         }
+
+        mProjection = new String[mFields.length + 2];
+        mProjection[0] = BaseColumns._ID;
+        mProjection[1] = coverCacheKey;
+        for(int i = 0;i < mFields.length;i++){
+            mProjection[i + 2] = mFields[i];
+        }
+    }
+
+    /**
+     * Returns first sort column for this adapter. Ensure {@link #mSortMode} is correctly set
+     * prior to calling this.
+     *
+     * @return string representing sort column to be used in projection.
+     * 		   If the column is binary, returns its human-readable counterpart instead.
+     */
+    private String getFirstSortColumn(){
+        int mode = mSortMode < 0 ? ~mSortMode : mSortMode;//get current sort mode
+        String column = SPACE_SPLIT.split(mSortValues[mode])[0];
+        if(column.endsWith("_key")){
+            column = column.substring(0,column.length() - 4);
+        }
+
+        return column;
+    }
+
+    public void setExpandable(boolean expandable){
+        if(expandable != mExpandable){
+            mExpandable = expandable;
+            notifyDataSetChanged();
+        }
+    }
+
+    /**
+     *
+     * @param projection
+     * @param returnSongs
+     * @return
+     */
+    private QueryTask buildQuery(String[] projection, boolean returnSongs) {
+
     }
 
     @Override
@@ -250,7 +291,7 @@ public class MediaAdapter extends BaseAdapter
 
     @Override
     public void setFilters(String filters) {
-
+        mConstraint = filters;
     }
 
     @Override

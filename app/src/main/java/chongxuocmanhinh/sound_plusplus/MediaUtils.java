@@ -1,5 +1,9 @@
 package chongxuocmanhinh.sound_plusplus;
 
+import android.content.ContentResolver;
+import android.database.Cursor;
+import android.net.Uri;
+
 /**
  * Created by L on 07/11/2016.
  */
@@ -53,4 +57,26 @@ public class MediaUtils {
      * The default sort order for albums. First the album, then tracknumber
      */
     public static final String ALBUM_SORT = "album_key,track";
+
+    /**
+     * Runs a query on the passed content resolver.
+     * Catches(and return null on) SecurityException (= user revoked read permission)
+     * @param resolver The content resolver to use
+     * @param uri the uri to query
+     * @param projection the projection to use
+     * @param selection the selecttion to use
+     * @param selectionArgs the slectionArgs to use
+     * @param sortOrder sort order to use
+     * @return
+     */
+    public static Cursor queryResolver(ContentResolver resolver, Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder)
+    {
+        Cursor cursor = null;
+        try {
+            cursor = resolver.query(uri, projection, selection, selectionArgs, sortOrder);
+        } catch(java.lang.SecurityException e) {
+            // we do not have read permission - just return a null cursor
+        }
+        return cursor;
+    }
 }
