@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.provider.BaseColumns;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -122,10 +124,89 @@ public class MediaAdapter extends BaseAdapter
      * Setting this to MediaUtils.TYPE_INVALID disables cover artwork
      */
     private int mCoverCacheType;
+//    /**
+//     * Alphabet to be used for {@link SectionIndexer}. Populated in {@link #buildAlphabet()}.
+//     */
+//    private List<SectionIndex> mAlphabet = new ArrayList<>(512);
+
     /**
-     * Alphabet to be used for {@link SectionIndexer}. Populated in {@link #buildAlphabet()}.
+     * Construct a MediaApdater representing the given <code>type</code>
+     * of media.
+     *
+     * @param context
+     * @param type
+     * @param limiter
+     * @param activity
      */
-    private List<SectionIndex> mAlphabet = new ArrayList<>(512);
+    public MediaAdapter(Context context, int type, Limiter limiter, LibraryActivity activity){
+        this.mContext = context;
+        this.mType = type;
+        this.mLimiter = limiter;
+        this.mActivity = activity;
+
+        if(mActivity != null)
+            mInflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        else
+            mInflater = null;
+
+        // Use media type + base id as cache key combination
+        mCoverCacheType = mType;
+        String coverCacheKey = BaseColumns._ID;
+
+        switch (type){
+            case MediaUtils.TYPE_ARTIST:
+                mStore = MediaStore.Audio.Artists.EXTERNAL_CONTENT_URI;
+                mFields = new String[] {MediaStore.Audio.Artists.ARTIST};
+                mFieldKeys = new String[] {MediaStore.Audio.Artists.ARTIST_KEY};
+                mSongSort = MediaUtils.DEFAULT_SORT;
+                mSortEntries = new int[] { R.string.name, R.string.number_of_tracks };
+                mSortValues = new String[] { "artist_key %1$s", "number_of_tracks %1$s,artist_key %1$s" };
+                break;
+            case MediaUtils.TYPE_ALBUM:
+                mStore = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
+                mFields = new String[] {MediaStore.Audio.Albums.ALBUM};
+                mFieldKeys = new String[] {MediaStore.Audio.Albums.ALBUM_KEY};
+                mSongSort = MediaUtils.ALBUM_SORT;
+                mSortEntries = new int[] { R.string.name, R.string.artist_album, R.string.year
+                        , R.string.number_of_tracks, R.string.date_added };
+                mSortValues = new String[] { "album_key %1$s", "artist_key %1$s,album_key %1$s"
+                        , "minyear %1$s,album_key %1$s", "numsongs %1$s,album_key %1$s", "_id %1$s" };
+                break;
+            case MediaUtils.TYPE_SONG:
+                mStore = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+                mFields = new String[] { MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ALBUM, MediaStore.Audio.Media.ARTIST };
+                mFieldKeys = new String[] { MediaStore.Audio.Media.TITLE_KEY, MediaStore.Audio.Media.ALBUM_KEY
+                        , MediaStore.Audio.Media.ARTIST_KEY };
+                mSortEntries = new int[] { R.string.name, R.string.artist_album_track, R.string.artist_album_title,
+                        R.string.artist_year, R.string.album_track,
+                        R.string.year, R.string.date_added, R.string.song_playcount };
+                mSortValues = new String[] { "title_key %1$s", "artist_key %1$s,album_key %1$s,track"
+                        , "artist_key %1$s,album_key %1$s,title_key %1$s",
+                        "artist_key %1$s,year %1$s,album_key %1$s, track", "album_key %1$s,track",
+                        "year %1$s,title_key %1$s","_id %1$s", SORT_MAGIC_PLAYCOUNT };
+                // Songs covers are cached per-album
+                mCoverCacheType = MediaUtils.TYPE_ALBUM;
+                coverCacheKey = MediaStore.Audio.Albums.ALBUM_ID;
+                break;
+            case MediaUtils.TYPE_PLAYLIST:
+                mStore = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
+                mFields = new String[] { MediaStore.Audio.Playlists.NAME };
+                mFieldKeys = null;
+                mSortEntries = new int[] { R.string.name, R.string.date_added };
+                mSortValues = new String[] { "name %1$s", "date_added %1$s" };
+                mExpandable = true;
+                break;
+            case MediaUtils.TYPE_GENRE:
+                mStore = MediaStore.Audio.Genres.EXTERNAL_CONTENT_URI;
+                mFields = new String[] { MediaStore.Audio.Genres.NAME };
+                mFieldKeys = null;
+                mSortEntries = new int[] { R.string.name };
+                mSortValues = new String[] { "name %1$s" };
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid value for type: " + type);
+        }
+    }
 
     @Override
     public int getCount() {

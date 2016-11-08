@@ -44,5 +44,13 @@ public class MediaUtils {
      * The number of different valid media types.
      */
     public static final int TYPE_COUNT = 6;
-
+    /**
+     * The default sort order for media queries. First artist, then album, then
+     * track number.
+     */
+    public static final String DEFAULT_SORT = "artist_key,album_key,track";
+    /**
+     * The default sort order for albums. First the album, then tracknumber
+     */
+    public static final String ALBUM_SORT = "album_key,track";
 }
