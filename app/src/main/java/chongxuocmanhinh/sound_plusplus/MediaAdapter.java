@@ -240,12 +240,29 @@ public class MediaAdapter extends BaseAdapter
     }
 
     /**
-     *
-     * @param projection
+     *Build the query to run with runQuery().
+     * @param projection The columns to be queried.
      * @param returnSongs
      * @return
      */
     private QueryTask buildQuery(String[] projection, boolean returnSongs) {
+        String contraint = mConstraint;
+        Limiter limiter = mLimiter;
+
+        StringBuilder selection = new StringBuilder();
+        String selectionArgs[] = null;
+
+        int mode = mSortMode;
+        String sortDir;
+        if(mode < 0){
+            mode = ~mode;
+            sortDir = "DESC";
+        }
+        else sortDir = "ASC";
+
+        String sortStringRow = mSortValues[mode];
+        String enrichedProjection;
+        //Magic sort mode:sort by playcount
 
     }
 
