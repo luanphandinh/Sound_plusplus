@@ -3,6 +3,8 @@ package chongxuocmanhinh.sound_plusplus;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.database.CursorIndexOutOfBoundsException;
+import android.database.DatabaseUtils;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
@@ -13,6 +15,7 @@ import android.widget.BaseAdapter;
 import android.widget.SectionIndexer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -240,13 +243,13 @@ public class MediaAdapter extends BaseAdapter
     }
 
     /**
-     *Build the query to run with runQuery().
+     *  Build the query to run with runQuery().
      * @param projection The columns to be queried.
      * @param returnSongs
      * @return
      */
     private QueryTask buildQuery(String[] projection, boolean returnSongs) {
-        String contraint = mConstraint;
+        String constraint = mConstraint;
         Limiter limiter = mLimiter;
 
         StringBuilder selection = new StringBuilder();
@@ -261,9 +264,116 @@ public class MediaAdapter extends BaseAdapter
         else sortDir = "ASC";
 
         String sortStringRow = mSortValues[mode];
-        String enrichedProjection;
+        String[] enrichedProjection = null;
         //Magic sort mode:sort by playcount
+        if(sortStringRow == SORT_MAGIC_PLAYCOUNT) {
+            //implement for sorting form database with song counthelper
+        }
+        else{
+            //enrich projection with sort column to build alphabet later
+            enrichedProjection = Arrays.copyOf(projection,projection.length + 1);
+            enrichedProjection[projection.length] = getFirstSortColumn();
 
+            if(returnSongs && mType != MediaUtils.TYPE_SONG){
+                //We are in a non-song adapter but requested to return song-sorting
+                //can only be done by using the adapters default sort mode
+                sortStringRow = mSongSort;
+            }
+        }
+
+        //Replace the %1$s by DESC or ASC
+        String sort = String.format(sortStringRow,sortDir);
+        if(returnSongs || mType == MediaUtils.TYPE_SONG)
+            selection.append(MediaStore.Audio.Media.IS_MUSIC + "AND length(_data)");
+        /**
+         *Khu này đọc code ko hiểu cc gì
+         */
+        // If we are using sorting keys, we need to change our constraint
+        // into a list of collation keys. Otherwise, just split the
+        // constraint with no modification.
+        if (constraint != null && constraint.length() != 0) {
+            String[] needles;
+            String[] keySource;
+
+            // If we are using sorting keys, we need to change our constraint
+            // into a list of collation keys. Otherwise, just split the
+            // constraint with no modification.
+            if (mFieldKeys != null) {
+                String colKey = MediaStore.Audio.keyFor(constraint);
+                String spaceColKey = DatabaseUtils.getCollationKey(" ");
+                needles = colKey.split(spaceColKey);
+                keySource = mFieldKeys;
+            } else {
+                needles = SPACE_SPLIT.split(constraint);
+                keySource = mFields;
+            }
+
+            int size = needles.length;
+            selectionArgs = new String[size];
+
+            StringBuilder keys = new StringBuilder(20);
+            keys.append(keySource[0]);
+            for (int j = 1; j != keySource.length; ++j) {
+                keys.append("||");
+                keys.append(keySource[j]);
+            }
+
+            for (int j = 0; j != needles.length; ++j) {
+                selectionArgs[j] = '%' + needles[j] + '%';
+
+                // If we have something in the selection args (i.e. j > 0), we
+                // must have something in the selection, so we can skip the more
+                // costly direct check of the selection length.
+                if (j != 0 || selection.length() != 0)
+                    selection.append(" AND ");
+                selection.append(keys);
+                selection.append(" LIKE ?");
+            }
+        }
+        /**
+         *
+         */
+        QueryTask query;
+        if(mType == MediaUtils.TYPE_GENRE && !returnSongs) {
+            query = MediaUtils.buildGenreExcludeEmptyQuery(enrichedProjection, selection.toString(),
+                    selectionArgs, sort);
+        } else if (limiter != null && limiter.type == MediaUtils.TYPE_GENRE) {
+            // Genre is not standard metadata for MediaStore.Audio.Media.
+            // We have to query it through a separate provider. : /
+            query = MediaUtils.buildGenreQuery((Long)limiter.data, enrichedProjection,  selection.toString(), selectionArgs, sort, mType, returnSongs);
+        } else {
+            if (limiter != null) {
+                if (selection.length() != 0)
+                    selection.append(" AND ");
+                selection.append(limiter.data);
+            }
+            query = new QueryTask(mStore, enrichedProjection, selection.toString(), selectionArgs, sort);
+            if (returnSongs) // force query on song provider as we are requested to return songs
+                query.uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        }
+        return query;
+    }
+
+    @Override
+    public Cursor query() {
+        return buildQuery(mProjection, false).runQuery(mContext.getContentResolver());
+    }
+
+    @Override
+    public void commitQuery(Object data) {
+        changeCursor((Cursor)data);
+    }
+
+    /**
+     * Build the query for all the songs represented by this adapter,for adding
+     * to the timeline
+     * @param projection
+     * @return
+     */
+    public QueryTask buildSongQuery(String[] projection){
+        QueryTask query = buildQuery(projection, true);
+        query.type = mType;
+        return query;
     }
 
     @Override
@@ -288,22 +398,51 @@ public class MediaAdapter extends BaseAdapter
 
     @Override
     public int getMediaTypes() {
-        return 0;
+        return mType;
     }
 
     @Override
     public void setLimiter(Limiter limiter) {
-
+        mLimiter = limiter;
     }
 
     @Override
     public Limiter getLimiter() {
-        return null;
+        return mLimiter;
     }
 
     @Override
     public Limiter buildLimiter(long id) {
-        return null;
+        String[] fields;
+        Object data;
+
+        Cursor cursor = mCursor;
+        if(cursor == null)
+            return null;
+        for(int i = 0,count = cursor.getCount();i != count;i++){
+            cursor.moveToPosition(i);
+            if(cursor.getLong(0) == id)
+                break;
+        }
+
+        switch (mType){
+            case MediaUtils.TYPE_ARTIST:
+                fields = new String[] {cursor.getString(2)};
+                data = String.format("%s=%d",MediaStore.Audio.Media.ARTIST_ID,id);
+                break;
+            case MediaUtils.TYPE_ALBUM:
+                fields = new String[]{cursor.getString(3),cursor.getString(2)};
+                data = String.format("%s=%d",MediaStore.Audio.Media.ALBUM_ID,id);
+                break;
+            case MediaUtils.TYPE_GENRE:
+                fields = new String[] {cursor.getString(2)};
+                data = id;
+                break;
+            default:
+                throw new IllegalStateException("getLimiter() is not supported for media type: " + mType);
+        }
+
+        return new Limiter(mType, fields, data);
     }
 
     @Override
@@ -311,19 +450,10 @@ public class MediaAdapter extends BaseAdapter
         mConstraint = filters;
     }
 
-    @Override
-    public Object query() {
-        return null;
-    }
-
-    @Override
-    public void commitQuery(Object data) {
-
-    }
 
     @Override
     public void clear() {
-
+        changeCursor(null);
     }
 
     @Override
@@ -349,5 +479,23 @@ public class MediaAdapter extends BaseAdapter
     @Override
     public int getSectionForPosition(int position) {
         return 0;
+    }
+
+    /**
+     * Set new cursor for this adapter
+     * The older will be closed
+     * @param cursor
+     */
+    public void changeCursor(Cursor cursor){
+        Cursor old = mCursor;
+        mCursor = cursor;
+        if (cursor == null) {
+            notifyDataSetInvalidated();
+        } else {
+            notifyDataSetChanged();
+        }
+        if (old != null) {
+            old.close();
+        }
     }
 }
