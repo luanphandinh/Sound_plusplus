@@ -25,14 +25,17 @@ import java.util.regex.Pattern;
 
 /**
  * MediaAdapter provides an adapter backed by a MediaStore content provider.
- * It generates simple one- or two-line text views to display each media
- * element.
+ * MediaAdapter cung cấp adapter được hỗ trợ bỡi mediaStore content provider
+ * Nó tạo ra một hay 2 dòng text view đơn giản để hiển thị trên mỗi media element.
  *
- * Filtering is supported, as is a more specific type of filtering referred to
- * as limiting. Limiting is separate from filtering; a new filter will not
- * erase an active filter. Limiting is intended to allow only media belonging
- * to a specific group to be displayed, e.g. only songs from a certain artist.
- * See getLimiter and setLimiter for details.
+ *  Filtering(lọc) được hỗ trơ.
+ *  Cụ thể hơn thì ta có thêm limiting.Limiting thì tách biệt hoàn toàn với filterring
+ *  Một filer mới thì sẽ không xóa active filter
+ *  Nhưng limitting thì được thiết kế chỉ để hiển thị duy nhất các media thuộc về
+ *      một group cụ thểm,ví dụ như chỉ duy nhất những bài hát(songs) từ một nghệ sĩ(artist)
+ *      sẽ được hiển thị
+ *  Xem thêm getLimiter và setLimiter để biết thêm chi tiết
+
  */
 public class MediaAdapter extends BaseAdapter
     implements LibraryAdapter
@@ -168,7 +171,7 @@ public class MediaAdapter extends BaseAdapter
             case MediaUtils.TYPE_ALBUM:
                 mStore = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
                 mFields = new String[] {MediaStore.Audio.Albums.ALBUM};
-                mFieldKeys = new String[] {MediaStore.Audio.Albums.ALBUM_KEY};
+                mFieldKeys = new String[] {MediaStore.Audio.Albums.ALBUM_KEY,MediaStore.Audio.Albums.ARTIST};
                 mSongSort = MediaUtils.ALBUM_SORT;
                 mSortEntries = new int[] { R.string.name, R.string.artist_album, R.string.year
                         , R.string.number_of_tracks, R.string.date_added };
@@ -210,6 +213,9 @@ public class MediaAdapter extends BaseAdapter
                 throw new IllegalArgumentException("Invalid value for type: " + type);
         }
 
+
+        //Create projection members match with fields members above respectively
+        //But with _ID at first and coverCacheKey second
         mProjection = new String[mFields.length + 2];
         mProjection[0] = BaseColumns._ID;
         mProjection[1] = coverCacheKey;
@@ -281,26 +287,32 @@ public class MediaAdapter extends BaseAdapter
             }
         }
 
-        //Replace the %1$s by DESC or ASC
+
+        //Sort value sẽ được add vào khi build query
+        //Thay cái %1$s bằng DESC or ASC
         String sort = String.format(sortStringRow,sortDir);
+
         if(returnSongs || mType == MediaUtils.TYPE_SONG)
             selection.append(MediaStore.Audio.Media.IS_MUSIC + "AND length(_data)");
-        /**
-         *Khu này đọc code ko hiểu cc gì
-         */
-        // If we are using sorting keys, we need to change our constraint
-        // into a list of collation keys. Otherwise, just split the
-        // constraint with no modification.
+
+
+        //Câu truy vấn selection
+        //Ví dụ ta đang ở tab album mà serch từ khóa sontung m-tp thì
+        //  WHERE album_key || artist_key LIKE  sontung AND album_key || artist_key LIKE  m-tp
         if (constraint != null && constraint.length() != 0) {
             String[] needles;
             String[] keySource;
 
-            // If we are using sorting keys, we need to change our constraint
-            // into a list of collation keys. Otherwise, just split the
-            // constraint with no modification.
+            //  Nếu ta đang sử dụng sorting keys,thì cần phải thay constraint
+            //  thành danh sách các collation keys,neeys ko,thì chỉ cần cắt
+            //  constraint mà ko cần thay đổi gì
+            //  Sử dụng callation keys để thực hiện các thao tác trên chuỗi
+            //  được nhanh hơn
             if (mFieldKeys != null) {
                 String colKey = MediaStore.Audio.keyFor(constraint);
                 String spaceColKey = DatabaseUtils.getCollationKey(" ");
+                //neddles là list các từ ta cần tìm liên quan
+                //được cắt ra bởi khoảng trắng
                 needles = colKey.split(spaceColKey);
                 keySource = mFieldKeys;
             } else {
@@ -308,16 +320,24 @@ public class MediaAdapter extends BaseAdapter
                 keySource = mFields;
             }
 
+            //  Tạo ra mảng selectionArgs dựa trên
+            //  số từ khóa được cắt ra từ constraint
             int size = needles.length;
             selectionArgs = new String[size];
 
+            //  Tạo khóa để query
             StringBuilder keys = new StringBuilder(20);
+            //  Gắn _ID vào
             keys.append(keySource[0]);
+            //  Gắn tất cả các trường có trong fileds để so sánh
             for (int j = 1; j != keySource.length; ++j) {
                 keys.append("||");
                 keys.append(keySource[j]);
             }
 
+
+            //Câu truy vấn selection sẽ được append
+            //với mỗi needdles add vào selectionArgs tương ứng
             for (int j = 0; j != needles.length; ++j) {
                 selectionArgs[j] = '%' + needles[j] + '%';
 
@@ -345,6 +365,7 @@ public class MediaAdapter extends BaseAdapter
             if (limiter != null) {
                 if (selection.length() != 0)
                     selection.append(" AND ");
+                //Gán phần câu truy vấn data vào cho selection
                 selection.append(limiter.data);
             }
             query = new QueryTask(mStore, enrichedProjection, selection.toString(), selectionArgs, sort);

@@ -15,7 +15,7 @@ import android.widget.ListAdapter;
 public interface LibraryAdapter extends ListAdapter {
     /**
      *Return the type of media represented by this adapter.One of
-     * MediaUtls.TYPE_*.
+     * MediaUtils.TYPE_*.
      */
     int getMediaTypes();
 
