@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<chongxuocmanhinh.sound_plusplus.DraggableRow
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal">
+
+    <View
+        android:id="@+id/pmark"
+        android:visibility="gone"
+        android:layout_width="@dimen/pmark_size"
+        android:layout_height="@dimen/row_normal_height"
+        android:background="?now_playing_marker" />
+
+    <!--<ch.teamuit.android.soundplusplus.LazyCoverView-->
+    <!--android:id="@+id/cover"-->
+    <!--android:scaleType="centerCrop"-->
+    <!--android:layout_width="@dimen/cover_size"-->
+    <!--android:layout_height="@dimen/cover_size"-->
+    <!--android:layout_marginLeft="@dimen/cover_padding_with_pmark"-->
+    <!--android:layout_gravity="center_vertical"-->
+    <!--android:visibility="gone" />-->
+    <TextView
+        android:id="@+id/text"
+        android:maxLines="2"
+        android:textColor="?android:textColorPrimary"
+        android:gravity="left|center_vertical"
+        android:layout_width="0px"
+        android:layout_height="@dimen/row_normal_height"
+        android:layout_marginLeft="@dimen/text_padding"
+        android:layout_weight="1" />
+    <CheckedTextView
+        android:id="@+id/checkbox"
+        android:visibility="gone"
+        android:checkMark="?android:attr/listChoiceIndicatorMultiple"
+        android:gravity="center_vertical"
+        android:layout_height="match_parent"
+        android:layout_width="@dimen/row_normal_height"/>
+    <ImageView
+        android:id="@+id/dragger"
+        android:visibility="gone"
+        android:src="@drawable/grabber"
+        android:scaleType="center"
+        android:layout_width="@dimen/row_normal_height"
+        android:layout_height="@dimen/row_normal_height" />
+</chongxuocmanhinh.sound_plusplus.DraggableRow>

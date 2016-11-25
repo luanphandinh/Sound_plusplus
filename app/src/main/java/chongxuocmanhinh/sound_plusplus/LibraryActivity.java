@@ -23,5 +23,6 @@ public class LibraryActivity extends AppCompatActivity
 
         mViewPager = (ViewPager) findViewById(R.id.pager);
 
+
     }
 }
