@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.CursorIndexOutOfBoundsException;
 import android.database.DatabaseUtils;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
@@ -412,9 +413,26 @@ public class MediaAdapter extends BaseAdapter
         return 0;
     }
 
+    /**
+     * xem thêm link dưới để hiểu thêm về cách hoạt động của hàm getView trong adapter
+     *http://stackoverflow.com/questions/10120119/how-does-the-getview-method-work-when-creating-your-own-custom-adapter
+     * @param position
+     * @param convertView
+     * @param parent
+     * @return
+     */
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        return null;
+        DraggableRow row;
+        if(convertView == null){
+            //Ta cần phải tạo một cái view mới nếu chúng ta ko có recycled view
+            //Hoặc view nằm ko đúng layout của mình
+            row = (DraggableRow) mInflater.inflate(R.layout.draggable_row,parent,false);
+            row.setupLayout(DraggableRow.LAYOUT_LISTVIEW);
+        }else{
+            row = (DraggableRow) convertView;
+        }
+        return row;
     }
 
     @Override
