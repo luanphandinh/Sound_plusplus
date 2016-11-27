@@ -5,10 +5,14 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.CursorIndexOutOfBoundsException;
 import android.database.DatabaseUtils;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -297,7 +301,7 @@ public class MediaAdapter extends BaseAdapter
             selection.append(MediaStore.Audio.Media.IS_MUSIC + "AND length(_data)");
 
 
-        //Câu truy vấn selection
+        //Câu truy vấn selection,phần này add thêm các filde và constraint để tìm kiếm với mục đích cụ thể
         //Ví dụ ta đang ở tab album mà serch từ khóa sontung m-tp thì
         //  WHERE album_key || artist_key LIKE  sontung AND album_key || artist_key LIKE  m-tp
         if (constraint != null && constraint.length() != 0) {
@@ -361,12 +365,14 @@ public class MediaAdapter extends BaseAdapter
         } else if (limiter != null && limiter.type == MediaUtils.TYPE_GENRE) {
             // Genre is not standard metadata for MediaStore.Audio.Media.
             // We have to query it through a separate provider. : /
-            query = MediaUtils.buildGenreQuery((Long)limiter.data, enrichedProjection,  selection.toString(), selectionArgs, sort, mType, returnSongs);
+            query = MediaUtils.buildGenreQuery((Long)limiter.data, enrichedProjection,  selection.toString(),
+                    selectionArgs, sort, mType, returnSongs);
         } else {
             if (limiter != null) {
                 if (selection.length() != 0)
                     selection.append(" AND ");
                 //Gán phần câu truy vấn data vào cho selection
+                //v.d AND album_id = 123 AND artist_id = 234
                 selection.append(limiter.data);
             }
             query = new QueryTask(mStore, enrichedProjection, selection.toString(), selectionArgs, sort);
@@ -424,14 +430,53 @@ public class MediaAdapter extends BaseAdapter
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         DraggableRow row;
+        ViewHolder holder;
         if(convertView == null){
             //Ta cần phải tạo một cái view mới nếu chúng ta ko có recycled view
             //Hoặc view nằm ko đúng layout của mình
             row = (DraggableRow) mInflater.inflate(R.layout.draggable_row,parent,false);
             row.setupLayout(DraggableRow.LAYOUT_LISTVIEW);
+
+            holder = new ViewHolder();
+            row.setTag(holder);
+
+            row.setDraggerOnClickListener(this);
+            row.showDragger(mExpandable);
         }else{
             row = (DraggableRow) convertView;
+            holder = (ViewHolder) row.getTag();
         }
+
+        Cursor  cursor = mCursor;
+        cursor.moveToPosition(position);
+        holder.id = cursor.getLong(0);
+
+        //Chủ yếu là cho song list với id(0),covercahce(1),title(2),artist(3),album(4)
+        if(mProjection.length >= 5){
+            //Lấy cái title với cái artist ra
+            String line1 = cursor.getString(2);
+            String line2 = cursor.getString(3);
+            //
+            line1 = (line1 == null ? DB_NULLSTRING_FALLBACK : line1);
+            //cho thêm thằng album vào
+            line2 = (line2 == null ? DB_NULLSTRING_FALLBACK : line2 + ", " + cursor.getString(4));
+            SpannableStringBuilder sb = new SpannableStringBuilder(line1);
+            sb.append('\n');
+            sb.append(line2);
+            sb.setSpan(new ForegroundColorSpan(Color.GRAY), line1.length() + 1, sb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            //set cái text vừa rồi lên textview của row
+            row.getTextView().setText(sb);
+            holder.title = line1;
+        }
+        //Phần này thì cho artist với album,cột thứ  id(0),covercahce(1),(artist | album)(2)
+        else{
+            String title = cursor.getString(2);
+            if(title == null) { title = DB_NULLSTRING_FALLBACK; }
+            row.getTextView().setText(title);
+            holder.title = title;
+        }
+
+        //inflate thằng coverview sau
         return row;
     }
 

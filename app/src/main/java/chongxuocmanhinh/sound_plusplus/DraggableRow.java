@@ -131,7 +131,7 @@ public class DraggableRow extends LinearLayout implements Checkable{
         mDragger.setOnClickListener(listener);
     }
 
-    public TextView getmTextView(){
+    public TextView getTextView(){
         return mTextView;
     }
 }
