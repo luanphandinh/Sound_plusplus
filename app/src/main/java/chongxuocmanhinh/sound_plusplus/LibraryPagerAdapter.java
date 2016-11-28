@@ -130,7 +130,7 @@ public class LibraryPagerAdapter
      * Cái dòng text dùng để hiển thị dòng đầu tiên trên cùng cho
      * các tab artist, album, với song.
      */
-    private String headerText;
+    private String mHeaderText;
     private DraggableRow mArtistHeader;
     private DraggableRow mAlbumHeader;
     private DraggableRow mSongHeader;
@@ -228,12 +228,29 @@ public class LibraryPagerAdapter
                     throw new IllegalArgumentException("Invalid media type: " + type);
             }
 
-            //view = inflater.inflate(R.layout.listview,null);
+            view = (ListView) inflater.inflate(R.layout.listview,null);
+            /**
+             * Cần phải gán hàm tạo context menu và hàm listtenItem click tại chỗ này
+             */
+
+            view.setTag(type);
+            if(header != null){
+                header.getTextView().setText(mHeaderText);
+                header.setTag(new ViewHolder());//Làm cái này để cho nó giống với mấy cái row bình thường
+                view.addHeaderView(header);
+            }
+
+            view.setAdapter(adapter);
+            //cần load sortOrder và setFilter tại chỗ này
+
+            mAdapters[type] = adapter;
+            mLists[type] = view;
+            mRequeryNeeded[type] = true;
         }
 
-
-
-        return super.instantiateItem(container, position);
+        //requeryIfNeeded(type);
+        container.addView(view);
+        return view;
     }
 
     /**
