@@ -255,6 +255,33 @@ public class MediaAdapter extends BaseAdapter
 
     /**
      *  Build the query to run with runQuery().
+     *  Tóm lại cái hàm buildQuery sẽ mong tạo ra các dữ liệu từ đó tạo ra một cái queryTask
+     *  và các dữ liệu đó là cái câu queary này:
+     *
+     *  + để (***) có nghĩa là tùy vào loại như album artist hay song,3 trường hợp(*)(**)(***)
+     *
+     *      SELECT __ID,__ID(cái ID thứ 2 này dùng cho cái hình trong coverCache)
+     *
+     *             ,artist              (*)
+     *             ,artist,album        (**)
+     *             ,title,artist,album  (***)
+     *
+     *      FROM mStore(*** Uri)
+     *
+     *      Với constraint = Beyoncé Sorry (Cái dòng dữ liệu là để minh họa,
+     *                                      trong app nó sẽ được lôi ra từ cái textbox search)
+     *
+     *      WHERE   artist LIKE %Beyoncé% AND artist LIKE %Sorry%                                       (*)
+     *              artist || album LIKE %Beyoncé%  AND   artist || album LIKE %Sorry%                  (**)
+     *              title || artist || album LIKE %Beyoncé% AND title || artist || album LIKE %Sorry%   (***)
+     *
+     *              //2 trường hợp,song nó ko có cái nào dưới nó nữa,nên ko cần filters
+     *              AND     artist_id == ?                  (*)
+     *                      artist_id == ? AND album_id == ?(**)
+     *
+     *       //Sẽ thay cái %1$s gì đồ này thành ASC hay DSC
+     *      ORDER BY artist_key %1$s, number_of_tracks %1$s,artist_key %1$s
+     *
      * @param projection The columns to be queried.
      * @param returnSongs
      * @return
@@ -406,7 +433,10 @@ public class MediaAdapter extends BaseAdapter
 
     @Override
     public int getCount() {
-        return 0;
+        Cursor cursor = mCursor;
+        if(cursor == null)
+            return 0;
+        return cursor.getCount();
     }
 
     @Override
@@ -416,12 +446,17 @@ public class MediaAdapter extends BaseAdapter
 
     @Override
     public long getItemId(int position) {
-        return 0;
+        Cursor cursor = mCursor;
+        if(cursor == null || cursor.getCount() == 0)
+            return 0;
+        cursor.moveToPosition(position);
+        return cursor.getLong(0);
     }
 
     /**
      * xem thêm link dưới để hiểu thêm về cách hoạt động của hàm getView trong adapter
      *http://stackoverflow.com/questions/10120119/how-does-the-getview-method-work-when-creating-your-own-custom-adapter
+     * Phần này cần thêm cái hình ảnh coverview sẽ được infalte sau
      * @param position
      * @param convertView
      * @param parent
@@ -540,14 +575,32 @@ public class MediaAdapter extends BaseAdapter
         changeCursor(null);
     }
 
+    /**
+     * Tạo cái intent để dispatch(gửi đi)
+     * @param row
+     * @return
+     */
     @Override
     public Intent createData(View row) {
-        return null;
+        ViewHolder holder = (ViewHolder) row.getTag();
+        Intent  intent = new Intent();
+        intent.putExtra(LibraryAdapter.DATA_TYPE,mType);
+        intent.putExtra(LibraryAdapter.DATA_ID,holder.id);
+        intent.putExtra(LibraryAdapter.DATA_TITLE,holder.title);
+        intent.putExtra(LibraryAdapter.DATA_EXPANDABLE,mExpandable);
+        return intent;
     }
 
+    /**
+     * Hàm callback của arrayclicks (item nào được click sẽ được xử lý trong LibraryPagerAdapter)
+     * @param view
+     */
     @Override
-    public void onClick(View v) {
-
+    public void onClick(View view) {
+        int id = view.getId();
+        view =  (View)view.getParent();//get view of linear layout,not the click consumer
+        Intent intent = createData(view);
+        //mActivity.onItemExpan
     }
 
     @Override
