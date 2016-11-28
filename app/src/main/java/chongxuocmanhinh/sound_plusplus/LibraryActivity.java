@@ -22,7 +22,7 @@ public class LibraryActivity extends AppCompatActivity
         setContentView(R.layout.library_content);
 
         mViewPager = (ViewPager) findViewById(R.id.pager);
-
+        mLimiterViews = (ViewGroup) findViewById(R.id.limiter_layout);
 
     }
 }
