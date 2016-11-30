@@ -10,7 +10,7 @@
         android:visibility="gone"
         android:layout_width="@dimen/pmark_size"
         android:layout_height="@dimen/row_normal_height"
-        android:background="?now_playing_marker" />
+        android:background="#00ff00" />
 
     <!--<ch.teamuit.android.soundplusplus.LazyCoverView-->
     <!--android:id="@+id/cover"-->
@@ -23,7 +23,7 @@
     <TextView
         android:id="@+id/text"
         android:maxLines="2"
-        android:textColor="?android:textColorPrimary"
+        android:textColor="#050500"
         android:gravity="left|center_vertical"
         android:layout_width="0px"
         android:layout_height="@dimen/row_normal_height"

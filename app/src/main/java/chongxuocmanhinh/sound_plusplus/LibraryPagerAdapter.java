@@ -1,6 +1,7 @@
 package chongxuocmanhinh.sound_plusplus;
 
 import android.database.ContentObserver;
+import android.database.Cursor;
 import android.os.Handler;
 import android.os.Handler.Callback;
 import android.os.Looper;
@@ -8,6 +9,7 @@ import android.os.Message;
 import android.provider.MediaStore;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -120,12 +122,12 @@ public class LibraryPagerAdapter
     /**
      * Cái Handler chạy trên UI thread.
      */
-    private final Handler mUiHandler;
+   // private final Handler mUiHandler;
 
     /**
      * Cái Handler chạy trên WorkerThread.
      */
-    private final Handler mWorkerHandler;
+    //private final Handler mWorkerHandler;
     /**
      * Cái dòng text dùng để hiển thị dòng đầu tiên trên cùng cho
      * các tab artist, album, với song.
@@ -177,10 +179,12 @@ public class LibraryPagerAdapter
      * @param workerLooper cái Looper chạy trên worker thread
      */
     public LibraryPagerAdapter(LibraryActivity activity, Looper workerLooper) {
+        Log.d("Test", "LibraryPagerAdapter");
         mActivity = activity;
-        mUiHandler = new Handler(this);
-        mWorkerHandler = new Handler(workerLooper,this);
+//        mUiHandler = new Handler(this);
+//        mWorkerHandler = new Handler(workerLooper,this);
         mCurrentPage = -1;
+        loadTabOrder();
         activity.getContentResolver().registerContentObserver(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, true, mPlaylistObserver);
     }
 
@@ -193,10 +197,11 @@ public class LibraryPagerAdapter
 
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
-
+        Log.d("Test", "instantiateItem: start");
         int type = mTabOrder[position];
         ListView view = mLists[type];
         if(view == null){
+            Log.d("Test", "instantiateItem: view not null");
             LibraryActivity activity = mActivity;
             LayoutInflater inflater = activity.getLayoutInflater();
             LibraryAdapter adapter;
@@ -204,23 +209,28 @@ public class LibraryPagerAdapter
 
             switch (type){
                 case MediaUtils.TYPE_ARTIST:
+                    Log.d("Test", "instantiateItem: artist");
                     adapter = mArtistAdapter = new MediaAdapter(activity,MediaUtils.TYPE_ARTIST,mPendingArtistLimiter,activity);
-                    mArtistHeader = header = (DraggableRow) inflater.inflate(R.layout.draggable_row,null);
+                   mArtistHeader = header = (DraggableRow) inflater.inflate(R.layout.draggable_row,null);
                     break;
                 case MediaUtils.TYPE_ALBUM:
+                    Log.d("Test", "instantiateItem: album");
                     adapter = mAlbumAdapter = new MediaAdapter(activity, MediaUtils.TYPE_ALBUM, mPendingAlbumLimiter, activity);
                     mPendingAlbumLimiter = null;
                     mAlbumHeader = header = (DraggableRow)inflater.inflate(R.layout.draggable_row, null);
                     break;
                 case MediaUtils.TYPE_SONG:
+                    Log.d("Test", "instantiateItem: song");
                     adapter = mSongAdapter = new MediaAdapter(activity, MediaUtils.TYPE_SONG, mPendingSongLimiter, activity);
                     mPendingSongLimiter = null;
                     mSongHeader = header = (DraggableRow)inflater.inflate(R.layout.draggable_row, null);
                     break;
                 case MediaUtils.TYPE_PLAYLIST:
+                    Log.d("Test", "instantiateItem: playlist");
                     adapter = mPlaylistAdapter = new MediaAdapter(activity, MediaUtils.TYPE_PLAYLIST, null, activity);
                     break;
                 case MediaUtils.TYPE_GENRE:
+                    Log.d("Test", "instantiateItem: genre");
                     adapter = mGenreAdapter = new MediaAdapter(activity, MediaUtils.TYPE_GENRE, null, activity);
                     mGenreAdapter.setExpandable(mSongsPosition != -1);
                     break;
@@ -239,10 +249,9 @@ public class LibraryPagerAdapter
                 header.setTag(new ViewHolder());//Làm cái này để cho nó giống với mấy cái row bình thường
                 view.addHeaderView(header);
             }
-
             view.setAdapter(adapter);
             //cần load sortOrder và setFilter tại chỗ này
-
+            adapter.commitQuery(adapter.query());
             mAdapters[type] = adapter;
             mLists[type] = view;
             mRequeryNeeded[type] = true;
@@ -259,12 +268,12 @@ public class LibraryPagerAdapter
      */
     @Override
     public int getCount() {
-        return 0;
+        return mTabCount;
     }
 
     @Override
     public boolean isViewFromObject(View view, Object object) {
-        return false;
+        return view == object;
     }
 
     //=========================override cho thằng Handler.CallBack=================//
@@ -289,4 +298,9 @@ public class LibraryPagerAdapter
 
     }
     //=========================override cho thằng ViewPager.OnPageChangeListener=================//
+
+    @Override
+    public void destroyItem(View container, int position, Object object) {
+        ((ViewPager) container).removeView((View) object);
+    }
 }

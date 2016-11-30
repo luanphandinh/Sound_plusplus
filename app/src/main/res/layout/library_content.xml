@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 
-<merge xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:vanilla="http://schemas.android.com/apk/res-auto" >
-    <LinearLayout
+<!--<merge xmlns:android="http://schemas.android.com/apk/res/android"-->
+    <!--xmlns:vanilla="http://schemas.android.com/apk/res-auto" >-->
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/content"
         android:orientation="vertical"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
         <android.support.v4.view.ViewPager
             android:id="@+id/pager"
-            android:layout_width="fill_parent"
+            android:layout_width="match_parent"
             android:layout_height="0px"
             android:layout_weight="1" />
-        <HorizontalScrollView
-            android:id="@+id/limiter_scroller"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|left">
-            <LinearLayout
-                android:id="@+id/limiter_layout"
-                android:orientation="horizontal"
-                android:layout_width="wrap_content"
-                android:layout_height="fill_parent" />
-        </HorizontalScrollView>
+        <!--<HorizontalScrollView-->
+            <!--android:id="@+id/limiter_scroller"-->
+            <!--android:layout_width="fill_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_gravity="bottom|left">-->
+            <!--<LinearLayout-->
+                <!--android:id="@+id/limiter_layout"-->
+                <!--android:orientation="horizontal"-->
+                <!--android:layout_width="wrap_content"-->
+                <!--android:layout_height="fill_parent" />-->
+        <!--</HorizontalScrollView>-->
     </LinearLayout>
     <!--<ch.teamuit.android.soundplusplus.SlidingView-->
         <!--android:id="@+id/sliding_view"-->
@@ -86,4 +86,4 @@
             <!--android:id="@+id/queue"-->
             <!--android:layout_width="fill_parent" android:layout_height="fill_parent" />-->
     <!--</ch.teamuit.android.soundplusplus.SlidingView>-->
-</merge>
+<!--</merge>-->

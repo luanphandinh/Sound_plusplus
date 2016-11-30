@@ -13,6 +13,7 @@ import android.provider.MediaStore;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -325,7 +326,7 @@ public class MediaAdapter extends BaseAdapter
         String sort = String.format(sortStringRow,sortDir);
 
         if(returnSongs || mType == MediaUtils.TYPE_SONG)
-            selection.append(MediaStore.Audio.Media.IS_MUSIC + "AND length(_data)");
+            selection.append(MediaStore.Audio.Media.IS_MUSIC + " AND length(_data)");
 
 
         //Câu truy vấn selection,phần này add thêm các filde và constraint để tìm kiếm với mục đích cụ thể
@@ -411,11 +412,13 @@ public class MediaAdapter extends BaseAdapter
 
     @Override
     public Cursor query() {
+        Log.d("Test", "buidlQuery");
         return buildQuery(mProjection, false).runQuery(mContext.getContentResolver());
     }
 
     @Override
     public void commitQuery(Object data) {
+        Log.d("Test", "commitQuery");
         changeCursor((Cursor)data);
     }
 
@@ -626,6 +629,10 @@ public class MediaAdapter extends BaseAdapter
     public void changeCursor(Cursor cursor){
         Cursor old = mCursor;
         mCursor = cursor;
+        mCursor.moveToPosition(0);
+        while (mCursor.moveToNext()){
+            Log.d("Test", "changeCursor: " + mCursor.getString(2));
+        }
         if (cursor == null) {
             notifyDataSetInvalidated();
         } else {
