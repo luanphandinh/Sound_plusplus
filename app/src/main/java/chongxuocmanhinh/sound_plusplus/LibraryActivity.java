@@ -1,5 +1,7 @@
 package chongxuocmanhinh.sound_plusplus;
+import android.app.Activity;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -8,7 +10,7 @@ import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.HorizontalScrollView;
 
-public class LibraryActivity extends AppCompatActivity
+public class LibraryActivity extends Activity
 {
 
 
@@ -17,6 +19,11 @@ public class LibraryActivity extends AppCompatActivity
      * The pager adapter that manages each media ListView.
      */
     public LibraryPagerAdapter mPagerAdapter;
+
+    /**
+     * Hành động được thực thi khi một dòng được nhấp
+     */
+    private int mDefaultAction;
 
 //    private HorizontalScrollView mLimiterScrollView;
 //    private ViewGroup mLimiterViews;
@@ -35,5 +42,10 @@ public class LibraryActivity extends AppCompatActivity
         mPagerAdapter = new LibraryPagerAdapter(this,null);
         mViewPager.setAdapter(mPagerAdapter);
         mPagerAdapter.notifyDataSetChanged();
+    }
+
+
+    public void onItemClicked(Intent rowData){
+        int action = mDefaultAction;
     }
 }

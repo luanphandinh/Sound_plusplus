@@ -1,5 +1,6 @@
 package chongxuocmanhinh.sound_plusplus;
 
+import android.content.Intent;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.os.Handler;
@@ -13,6 +14,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 /**
@@ -26,6 +28,7 @@ public class LibraryPagerAdapter
         extends PagerAdapter
         implements  Callback
                     ,ViewPager.OnPageChangeListener
+                    ,AdapterView.OnItemClickListener
 {
     /**
      *The number of unique list types.The number of visible lists may be smaller
@@ -188,10 +191,58 @@ public class LibraryPagerAdapter
         activity.getContentResolver().registerContentObserver(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, true, mPlaylistObserver);
     }
 
+    /**
+     * Hàm này dùng để loadTabOrder của pager
+     * @return
+     */
     public boolean loadTabOrder(){
         mTabOrder = DEFAULT_ORDER;
         mTabCount = MAX_ADAPTER_COUNT;
+        computeExpansions();
         return true;
+    }
+
+
+    /**
+     * Hàm này được dùng để set trạng thái expanable của
+     * các row trong listview
+     */
+    public void computeExpansions()
+    {
+        int[] order = mTabOrder;
+        int songsPosition = -1;
+        int albumsPosition = -1;
+        int artistsPosition = -1;
+        int genresPosition = -1;
+
+        for(int i = mTabCount;--i != -1;){
+            switch (order[i]) {
+                case MediaUtils.TYPE_ALBUM:
+                    albumsPosition = i;
+                    break;
+                case MediaUtils.TYPE_SONG:
+                    songsPosition = i;
+                    break;
+                case MediaUtils.TYPE_ARTIST:
+                    artistsPosition = i;
+                    break;
+                case MediaUtils.TYPE_GENRE:
+                    genresPosition = i;
+                    break;
+            }
+        }
+
+        if(mArtistAdapter != null)
+            mArtistAdapter.setExpandable(songsPosition != -1 || albumsPosition != -1);
+        if(mAlbumAdapter != null)
+            mAlbumAdapter.setExpandable(songsPosition != -1);
+        if(mGenreAdapter != null)
+            mGenreAdapter.setExpandable(songsPosition != -1);
+
+        mSongsPosition = songsPosition;
+        mAlbumsPosition = albumsPosition;
+        mArtistsPosition = artistsPosition;
+        mGenresPosition = genresPosition;
     }
 
 
@@ -302,5 +353,21 @@ public class LibraryPagerAdapter
     @Override
     public void destroyItem(View container, int position, Object object) {
         ((ViewPager) container).removeView((View) object);
+    }
+
+    //=========================AdapterView.OnItemClickListenerr=================//
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        Intent intent = (id == -1 ? createHeaderIntent(view) : mCurrentAdapter.createData(view));
+        mActivity.onItemClicked(intent);
+    }
+
+    private static Intent createHeaderIntent(View header) {
+        header = (View) header.getParent();//tag is set on parent view of header
+        int type = (Integer) header.getTag();
+        Intent intent = new Intent();
+        intent.putExtra(LibraryAdapter.DATA_ID,LibraryAdapter.HEADER_ID);
+        intent.putExtra(LibraryAdapter.DATA_TYPE, type);
+        return intent;
     }
 }
