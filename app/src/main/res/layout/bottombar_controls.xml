@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<chongxuocmanhinh.sound_plusplus.BottomBarControls
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="#354256"
+    android:elevation="8dp"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    >
+
+    <LinearLayout
+        android:layout_height="@dimen/row_normal_height"
+        android:layout_width="fill_parent"
+        android:background="@drawable/unbound_ripple_light"
+        android:gravity="center_vertical"
+        android:id="@+id/content_controls">
+
+        <ImageView
+            android:id="@+id/cover"
+            android:scaleType="centerCrop"
+            android:layout_width="@dimen/cover_size"
+            android:layout_height="@dimen/cover_size"
+            android:layout_marginLeft="@dimen/cover_padding"
+            android:layout_gravity="center_vertical"
+            android:contentDescription="@string/cover_art" />
+        <LinearLayout
+            android:layout_height="wrap_content"
+            android:layout_width="0px"
+            android:layout_weight="1"
+            android:layout_marginLeft="@dimen/text_padding"
+            android:layout_gravity="center"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/title"
+                android:textSize="14sp"
+                android:singleLine="true"
+                android:gravity="center_vertical"
+                android:ellipsize="marquee"
+                android:layout_width="fill_parent"
+                android:textColor="@android:color/background_light"
+                android:layout_height="wrap_content" />
+            <TextView
+                android:id="@+id/artist"
+                android:textSize="12sp"
+                android:singleLine="true"
+                android:gravity="center_vertical"
+                android:ellipsize="marquee"
+                android:layout_width="fill_parent"
+                android:textColor="@android:color/secondary_text_dark"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <SearchView
+        android:visibility="gone"
+        android:layout_height="@dimen/row_normal_height"
+        android:layout_width="fill_parent"
+        android:iconifiedByDefault="false"
+        android:imeOptions="actionSearch|flagNoFullscreen"
+        android:id="@+id/search_view" />
+
+
+</chongxuocmanhinh.sound_plusplus.BottomBarControls>

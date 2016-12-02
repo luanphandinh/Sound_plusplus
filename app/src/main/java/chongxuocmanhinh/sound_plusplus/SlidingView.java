@@ -83,7 +83,13 @@ public class SlidingView extends FrameLayout
         public abstract void onSlideFullyExpanded(boolean expanded);
     }
 
+    public SlidingView(Context context) {
+        this(context, null);
+    }
 
+    public SlidingView(Context context, AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
     public SlidingView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
@@ -280,6 +286,65 @@ public class SlidingView extends FrameLayout
     //========================implement for View.OnTouchListener================================//
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        return false;
+        // Fix up the event offset as we are moving the view itself.
+        // This is required to get flings correctly detected
+        event.setLocation(event.getRawX(), event.getRawY());
+
+        mDetector.onTouchEvent(event);
+        float y = event.getRawY();
+        float dy = y - mPreviousY;    // diff Y
+        float vy = getTranslationY(); // view Y
+
+        switch(event.getActionMasked()) {
+            case MotionEvent.ACTION_UP : {
+                if (mDidScroll == false) { // Dispatch event if we never scrolled
+                    v.onTouchEvent(event);
+                } else {
+                    int nstages = mStages.size();
+                    int tstage = 0;
+                    // add the amounts of pixels we would progress in HALF of the time of the animation as a virtual progress
+                    int tbonus = (int)(mFlingVelocity * 0.001 * ANIMATION_DURATION * 0.5);
+                    for (int i = 0; i < nstages; i++) {
+                        int csnap = getChildAt(i).getHeight() / 2; // try to 'snap in' at half of this childs height
+                        if (vy+tbonus-csnap <= mStages.get(i))
+                            tstage = i;
+                    }
+                    setExpansionStage(tstage);
+                }
+                break;
+            }
+            case MotionEvent.ACTION_DOWN : {
+                v.onTouchEvent(event);
+
+                mProgressPx = 0;
+                mFlingVelocity = 0;
+                mDidScroll = false;
+                break;
+            }
+            case MotionEvent.ACTION_MOVE : {
+                mProgressPx += Math.abs(dy);
+                float usedY = vy + dy;
+
+                if (usedY < 0)
+                    usedY = 0;
+                if (usedY > mMaxOffsetY)
+                    usedY = mMaxOffsetY;
+
+                if (mProgressPx < MAX_PROGRESS) {
+                    // we did not reach a minimum of progress: do not scroll yet
+                    usedY = vy;
+                } else if (mDidScroll == false) {
+                    mDidScroll = true;
+                    event.setAction(MotionEvent.ACTION_CANCEL);
+                    v.onTouchEvent(event);
+                    setSlaveViewStage(0); // parent can use full view, will be reset on ACTION_UP handlers
+                }
+
+                setTranslationY(usedY);
+                break;
+            }
+        }
+        mPreviousY = y;
+        return true;
     }
 }
