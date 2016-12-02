@@ -9,6 +9,7 @@ import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 
@@ -120,6 +121,20 @@ public class SlidingView extends FrameLayout
         setSlaveViewStage(0); // ensure that parent is visible before the animation starts
         setExpansionStage(0);
     }
+    /**
+     * Same as hideSlide(), but will fire after we are not
+     * visible anymore
+     */
+    public void hideSlideDelayed() {
+        mDelayedHide = true;
+    }
+
+    /**
+     * Returns true if the slide is fully hidden
+     */
+    public boolean isHidden() {
+        return mCurrentStage == 0;
+    }
 
     /**
      * Returns true nếu slide được expand hoàn toàn lên màn hình
@@ -167,6 +182,78 @@ public class SlidingView extends FrameLayout
         params.bottomMargin = totalOffset;
         mSlaveView.setLayoutParams(params);
     }
+    /**
+     * Được gọi sau khi view được inflated, binds  onTouchListener tới các elements con của child view
+     */
+    @Override
+    protected void onFinishInflate() {
+        super.onFinishInflate();
+
+        View handle = findViewById(mSliderHandleId);
+        if(handle != null){
+            if(handle instanceof ViewGroup){
+                ViewGroup group = (ViewGroup)handle;
+                for(int i = 0;i <group.getChildCount();i++){
+                    group.getChildAt(i).setOnTouchListener(this);
+                }
+            }else{
+                handle.setOnTouchListener(this);
+            }
+        }
+    }
+
+
+    /**
+     *stack tất cả các views horizontally
+     */
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+
+        int viewHeight = getMeasuredHeight();
+        int childCount = getChildCount();
+        int topOffset = 0;
+        View lastChild = null;
+
+        mStages.clear();
+
+        for (int i = 0; i < childCount ; i++) {
+            lastChild = getChildAt(i);
+            int childWidth = lastChild.getMeasuredWidth();
+            int childHeight = lastChild.getMeasuredHeight();
+            int childBottom = childHeight + topOffset;
+
+            // No child should consume space outside of our view
+            if (topOffset > viewHeight)
+                topOffset = viewHeight;
+            if (childBottom > viewHeight)
+                childBottom = viewHeight;
+
+            lastChild.layout(0, topOffset, childWidth, childBottom);
+            mStages.add(viewHeight - childBottom);
+            topOffset += childHeight;
+        }
+
+        if (lastChild != null && mMaxOffsetY == 0) {
+            // Sizes are now fixed: Overwrite any (possible) FILL_PARENT or WRAP_CONTENT
+            // value with the measured size
+            // This should only happen on the first run (mMaxOffsetY == 0)
+            for (int i = 0; i < childCount ; i++) {
+                View child = getChildAt(i);
+                FrameLayout.LayoutParams params = (FrameLayout.LayoutParams)child.getLayoutParams();
+                params.height = child.getHeight();
+                params.width = child.getWidth();
+                child.setLayoutParams(params);
+            }
+        }
+
+        if (changed) {
+            mMaxOffsetY = mStages.get(0);
+            setTranslationY(mMaxOffsetY);
+            setExpansionStage(0);
+        }
+    }
+
 
     class GestureListener extends GestureDetector.SimpleOnGestureListener {
         @Override
