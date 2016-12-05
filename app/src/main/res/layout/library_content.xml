@@ -82,8 +82,8 @@
             <include layout="@layout/controls" />
         </LinearLayout>
 
-        <!--<fragment class="ch.teamuit.android.soundplusplus.ShowQueueFragment"-->
-            <!--android:id="@+id/queue"-->
-            <!--android:layout_width="fill_parent" android:layout_height="fill_parent" />-->
+        <fragment class="chongxuocmanhinh.sound_plusplus.ShowQueueFragment"
+            android:id="@+id/queue"
+            android:layout_width="fill_parent" android:layout_height="fill_parent" />
     </chongxuocmanhinh.sound_plusplus.SlidingView>
 </merge>
