@@ -262,12 +262,14 @@ public class LibraryPagerAdapter
                 case MediaUtils.TYPE_ARTIST:
                     Log.d("Test", "instantiateItem: artist");
                     adapter = mArtistAdapter = new MediaAdapter(activity,MediaUtils.TYPE_ARTIST,mPendingArtistLimiter,activity);
-                   mArtistHeader = header = (DraggableRow) inflater.inflate(R.layout.draggable_row,null);
+                    mArtistAdapter.setExpandable(mSongsPosition != -1 || mAlbumsPosition != -1);
+                    mArtistHeader = header = (DraggableRow) inflater.inflate(R.layout.draggable_row,null);
                     break;
                 case MediaUtils.TYPE_ALBUM:
                     Log.d("Test", "instantiateItem: album");
                     adapter = mAlbumAdapter = new MediaAdapter(activity, MediaUtils.TYPE_ALBUM, mPendingAlbumLimiter, activity);
                     mPendingAlbumLimiter = null;
+                    mAlbumAdapter.setExpandable(mSongsPosition != -1);
                     mAlbumHeader = header = (DraggableRow)inflater.inflate(R.layout.draggable_row, null);
                     break;
                 case MediaUtils.TYPE_SONG:
