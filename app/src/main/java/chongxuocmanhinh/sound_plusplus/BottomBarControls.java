@@ -26,6 +26,10 @@ public class BottomBarControls extends LinearLayout
      */
     private TextView mTitle;
     /**
+     * Cover image
+     */
+    private ImageView mCover;
+    /**
      * Tên ca sĩ của bài hát đang được play
      */
     private TextView mArtist;
@@ -47,7 +51,7 @@ public class BottomBarControls extends LinearLayout
     protected void onFinishInflate() {
         mTitle = (TextView)findViewById(R.id.title);
         mArtist = (TextView)findViewById(R.id.artist);
-        //mCover = (ImageView)findViewById(R.id.cover);
+        mCover = (ImageView)findViewById(R.id.cover);
         mSearchView = (SearchView)findViewById(R.id.search_view);
         mControlsContent = (LinearLayout)findViewById(R.id.content_controls);
 
@@ -57,6 +61,7 @@ public class BottomBarControls extends LinearLayout
     //==========================View.OnClickListener==================================//
     @Override
     public void onClick(View v) {
+        Object tag = v.getTag();
 
     }
 
