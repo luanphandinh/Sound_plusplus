@@ -61,8 +61,6 @@ public class BottomBarControls extends LinearLayout
     //==========================View.OnClickListener==================================//
     @Override
     public void onClick(View v) {
-        Object tag = v.getTag();
-
     }
 
     @Override
