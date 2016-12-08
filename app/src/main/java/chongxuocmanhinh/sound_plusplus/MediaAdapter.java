@@ -627,6 +627,7 @@ public class MediaAdapter extends BaseAdapter
      * @param cursor
      */
     public void changeCursor(Cursor cursor){
+        if(cursor == null) return;
         Cursor old = mCursor;
         mCursor = cursor;
         mCursor.moveToPosition(0);
