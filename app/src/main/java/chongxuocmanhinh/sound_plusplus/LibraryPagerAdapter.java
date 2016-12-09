@@ -125,12 +125,12 @@ public class LibraryPagerAdapter
     /**
      * Cái Handler chạy trên UI thread.
      */
-   // private final Handler mUiHandler;
+    private final Handler mUiHandler;
 
     /**
      * Cái Handler chạy trên WorkerThread.
      */
-    //private final Handler mWorkerHandler;
+    private final Handler mWorkerHandler;
     /**
      * Cái dòng text dùng để hiển thị dòng đầu tiên trên cùng cho
      * các tab artist, album, với song.
@@ -184,8 +184,8 @@ public class LibraryPagerAdapter
     public LibraryPagerAdapter(LibraryActivity activity, Looper workerLooper) {
         Log.d("Test", "LibraryPagerAdapter");
         mActivity = activity;
-//        mUiHandler = new Handler(this);
-//        mWorkerHandler = new Handler(workerLooper,this);
+        mUiHandler = new Handler(this);
+        mWorkerHandler = new Handler(workerLooper,this);
         mCurrentPage = -1;
         loadTabOrder();
         activity.getContentResolver().registerContentObserver(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, true, mPlaylistObserver);
@@ -304,13 +304,13 @@ public class LibraryPagerAdapter
             }
             view.setAdapter(adapter);
             //cần load sortOrder và setFilter tại chỗ này
-            adapter.commitQuery(adapter.query());
+            //adapter.commitQuery(adapter.query());
             mAdapters[type] = adapter;
             mLists[type] = view;
             mRequeryNeeded[type] = true;
         }
 
-        //requeryIfNeeded(type);
+        requeryIfNeeded(type);
         container.addView(view);
         return view;
     }
@@ -330,11 +330,104 @@ public class LibraryPagerAdapter
     }
 
     //=========================override cho thằng Handler.CallBack=================//
+    /**
+     * Run on query on the adapter passed in obj.
+     *
+     * Runs on worker thread.
+     */
+    private static final int MSG_RUN_QUERY = 0;
+    /**
+     * Save the sort mode for the adapter passed in obj.
+     *
+     * Runs on worker thread.
+     */
+    private static final int MSG_SAVE_SORT = 1;
+    /**
+     * passed in obj.
+     *
+     * Runs on worker thread.
+     */
+    private static final int MSG_REQUEST_REQUERY = 2;
+    /**
+     * Commit the cursor passed in obj to the adapter at the index passed in
+     * arg1.
+     *
+     * Runs on UI thread.
+     */
+    private static final int MSG_COMMIT_QUERY = 3;
     @Override
     public boolean handleMessage(Message msg) {
-        return false;
+        switch (msg.what){
+            case MSG_RUN_QUERY: {
+                LibraryAdapter adapter = (LibraryAdapter) msg.obj;
+                int index = adapter.getMediaTypes();
+                Handler handler = mUiHandler;
+                handler.sendMessage(handler.obtainMessage(MSG_COMMIT_QUERY, index, 0, adapter.query()));
+                break;
+            }
+            case MSG_COMMIT_QUERY: {
+                int index = msg.arg1;
+                mAdapters[index].commitQuery(msg.obj);
+                break;
+            }
+            case MSG_REQUEST_REQUERY:
+                requestRequery((LibraryAdapter)msg.obj);
+                break;
+            default:
+                return false;
+
+        }
+        return  true;
     }
 
+    /**
+     * Requery lại cái adapter được truyền vào ,nếu mà nó chính là cái mCurrentAdapter
+     * thì requery luôn,nếu không thì đánh dấu cho nó cần queyr thành true
+     * lần tiếp theo nếu người dùng kéo tới cái tab đó thì nó requery lại
+     * @param adapter
+     */
+    public void requestRequery(LibraryAdapter adapter){
+        if(adapter == mCurrentAdapter){
+            postRunQuery(adapter);
+        }
+        else{
+            mRequeryNeeded[adapter.getMediaTypes()] = true;
+            adapter.clear();
+        }
+    }
+
+    /**
+     * Gọi tới thằng {@link LibraryPagerAdapter#requestRequery(LibraryAdapter)} trên UI
+     * thread.
+     *
+     * @param adapter để truyền vào requestRequery .
+     */
+    public void postRequestRequery(LibraryAdapter adapter)
+    {
+        Handler handler = mUiHandler;
+        handler.sendMessage(handler.obtainMessage(MSG_REQUEST_REQUERY, adapter));
+    }
+
+    /**
+     * Query cho cái adapter được truyền vào
+     *
+     * @param adapter cần được query
+     */
+    public void postRunQuery(LibraryAdapter adapter){
+        mRequeryNeeded[adapter.getMediaTypes()] = false;
+        Handler handler = mWorkerHandler;
+        handler.removeMessages(MSG_RUN_QUERY,adapter);
+        handler.sendMessage(handler.obtainMessage(MSG_RUN_QUERY,adapter));
+    }
+
+
+
+    public void requeryIfNeeded(int type){
+        LibraryAdapter adapter = mAdapters[type];
+        if(adapter != null && mRequeryNeeded[type]){
+            postRunQuery(adapter);
+        }
+    }
     //=========================override cho thằng ViewPager.OnPageChangeListener=================//
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
