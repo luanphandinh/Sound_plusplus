@@ -397,13 +397,17 @@ public class MediaAdapter extends BaseAdapter
                     selectionArgs, sort, mType, returnSongs);
         } else {
             if (limiter != null) {
+                Log.d("Test","Vo limiter");
                 if (selection.length() != 0)
                     selection.append(" AND ");
                 //Gán phần câu truy vấn data vào cho selection
                 //v.d AND album_id = 123 AND artist_id = 234
                 selection.append(limiter.data);
             }
+
             query = new QueryTask(mStore, enrichedProjection, selection.toString(), selectionArgs, sort);
+            Log.d("Test","Slection : " + query.selection);
+
             if (returnSongs) // force query on song provider as we are requested to return songs
                 query.uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         }
@@ -469,6 +473,7 @@ public class MediaAdapter extends BaseAdapter
     public View getView(int position, View convertView, ViewGroup parent) {
         DraggableRow row;
         ViewHolder holder;
+
         if(convertView == null){
             //Ta cần phải tạo một cái view mới nếu chúng ta ko có recycled view
             //Hoặc view nằm ko đúng layout của mình
@@ -591,6 +596,10 @@ public class MediaAdapter extends BaseAdapter
         intent.putExtra(LibraryAdapter.DATA_ID,holder.id);
         intent.putExtra(LibraryAdapter.DATA_TITLE,holder.title);
         intent.putExtra(LibraryAdapter.DATA_EXPANDABLE,mExpandable);
+        Log.d("Test","" + mType);
+        Log.d("Test","" + holder.id);
+        Log.d("Test","" + holder.title);
+        Log.d("Test","" + mExpandable);
         return intent;
     }
 
@@ -603,7 +612,7 @@ public class MediaAdapter extends BaseAdapter
         int id = view.getId();
         view =  (View)view.getParent();//get view of linear layout,not the click consumer
         Intent intent = createData(view);
-        //mActivity.onItemExpan
+        mActivity.onItemExpanded(intent);
     }
 
     @Override

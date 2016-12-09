@@ -196,6 +196,7 @@ public class LibraryPagerAdapter
      * @return
      */
     public boolean loadTabOrder(){
+        Log.d("Test :","LoadTabOrder");
         mTabOrder = DEFAULT_ORDER;
         mTabCount = MAX_ADAPTER_COUNT;
         computeExpansions();
@@ -243,6 +244,9 @@ public class LibraryPagerAdapter
         mAlbumsPosition = albumsPosition;
         mArtistsPosition = artistsPosition;
         mGenresPosition = genresPosition;
+        Log.d("Test :","Song Pos - " + songsPosition);
+        Log.d("Test :","Album Pos - " + albumsPosition);
+        Log.d("Test :","genres Pos - " + genresPosition);
     }
 
 
@@ -295,7 +299,7 @@ public class LibraryPagerAdapter
             /**
              * Cần phải gán hàm tạo context menu và hàm listtenItem click tại chỗ này
              */
-            //view.setOnItemClickListener(this);
+            view.setOnItemClickListener(this);
 
             view.setTag(type);
             if(header != null){
@@ -369,6 +373,11 @@ public class LibraryPagerAdapter
             case MSG_COMMIT_QUERY: {
                 int index = msg.arg1;
                 mAdapters[index].commitQuery(msg.obj);
+                Cursor cursor = (Cursor) msg.obj;
+                cursor.moveToFirst();
+                while(cursor.moveToNext()){
+                    Log.d("Test","New Data");
+                }
                 break;
             }
             case MSG_REQUEST_REQUERY:
@@ -393,7 +402,9 @@ public class LibraryPagerAdapter
         }
         else{
             mRequeryNeeded[adapter.getMediaTypes()] = true;
-            adapter.clear();
+            Log.d("Test","Request requery");
+            //adapter.clear();
+            Log.d("Test","Clear adapter");
         }
     }
 
@@ -438,7 +449,19 @@ public class LibraryPagerAdapter
 
     @Override
     public void onPageSelected(int position) {
+        setPrimaryItem(null, position, null);
+    }
 
+    @Override
+    public void setPrimaryItem(ViewGroup container, int position, Object object) {
+        int type = mTabOrder[position];
+        LibraryAdapter adapter = mAdapters[type];
+        if(position != mCurrentPage || adapter != mCurrentAdapter){
+            requeryIfNeeded(type);
+            mCurrentAdapter = adapter;
+            mCurrentPage = position;
+            mActivity.onPageChanged(position, adapter);
+        }
     }
 
     @Override
@@ -455,7 +478,9 @@ public class LibraryPagerAdapter
     //=========================AdapterView.OnItemClickListenerr=================//
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        Log.d("Test :","LibraryPagerAdatper : onItemClick");
         Intent intent = (id == -1 ? createHeaderIntent(view) : mCurrentAdapter.createData(view));
+        Log.d("Test :","LibraryPagerAdatper : Intent not null");
         mActivity.onItemClicked(intent);
     }
 

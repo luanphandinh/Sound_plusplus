@@ -24,9 +24,18 @@ public class LibraryActivity extends Activity
 
     public ViewPager mViewPager;
     /**
+     * The id of the media that was last pressed in the current adapter. Used to
+     * open the playback activity when an item is pressed twice.
+     */
+    private long mLastActedId;
+    /**
      * The pager adapter that manages each media ListView.
      */
     public LibraryPagerAdapter mPagerAdapter;
+    /**
+     * The adapter for the currently visible list.
+     */
+    private LibraryAdapter mCurrentAdapter;
 
     /**
      * Hành động được thực thi khi một dòng được nhấp
@@ -68,15 +77,52 @@ public class LibraryActivity extends Activity
     //=====================Khi pagerAdapter bắt được clickListener thì gọi tới đống này===================//
     public void onItemClicked(Intent rowData){
         //int action = mDefaultAction;
+        Log.d("Test :","LibraryActivity : OnItemClicked");
         if(rowData.getBooleanExtra(LibraryAdapter.DATA_EXPANDABLE, false)){
+            onItemExpanded(rowData);
         }
     }
 
+    public void onItemExpanded(Intent rowData){
+        int type = rowData.getIntExtra(LibraryAdapter.DATA_TYPE,MediaUtils.TYPE_INVALID);
+        if(type == MediaUtils.TYPE_PLAYLIST)
+            return;
+        expand(rowData);
+    }
+
+    public void expand(Intent intent){
+        int type = intent.getIntExtra(LibraryAdapter.DATA_TYPE,MediaUtils.TYPE_INVALID);
+        long id = intent.getLongExtra(LibraryAdapter.DATA_ID,MediaUtils.TYPE_INVALID);
+        int tab = mPagerAdapter.setLimiter(mPagerAdapter.mAdapters[type].buildLimiter(id));
+        if (tab == -1 || tab == mViewPager.getCurrentItem())
+            updateLimiterViews();
+        else
+            mViewPager.setCurrentItem(tab);
+    }
 
 
+    public void updateLimiterViews(){
+
+    }
     //=======================================Handler.Callback==============================//
     @Override
     public boolean handleMessage(Message msg) {
         return false;
+    }
+
+
+    public void onPageChanged(int position, LibraryAdapter adapter)
+    {
+        mCurrentAdapter = adapter;
+        mLastActedId = LibraryAdapter.INVALID_ID;
+        updateLimiterViews();
+//        if (adapter != null && (adapter.getLimiter() == null || adapter.getMediaType() == MediaUtils.TYPE_FILE)) {
+//            // Save current page so it is opened on next startup. Don't save if
+//            // the page was expanded to, as the expanded page isn't the starting
+//            // point. This limitation does not affect the files tab as the limiter
+//            // (the files almost always have a limiter)
+//            Handler handler = mHandler;
+//            handler.sendMessage(mHandler.obtainMessage(MSG_SAVE_PAGE, position, 0));
+//        }
     }
 }
