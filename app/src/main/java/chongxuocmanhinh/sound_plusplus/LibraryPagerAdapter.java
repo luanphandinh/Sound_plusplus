@@ -252,7 +252,7 @@ public class LibraryPagerAdapter
         int type = mTabOrder[position];
         ListView view = mLists[type];
         if(view == null){
-            Log.d("Test", "instantiateItem: view not null");
+            Log.d("Test", "instantiateItem: create new view");
             LibraryActivity activity = mActivity;
             LayoutInflater inflater = activity.getLayoutInflater();
             LibraryAdapter adapter;
@@ -295,6 +295,7 @@ public class LibraryPagerAdapter
             /**
              * Cần phải gán hàm tạo context menu và hàm listtenItem click tại chỗ này
              */
+            //view.setOnItemClickListener(this);
 
             view.setTag(type);
             if(header != null){
@@ -309,7 +310,7 @@ public class LibraryPagerAdapter
             mLists[type] = view;
             mRequeryNeeded[type] = true;
         }
-
+        Log.d("Test", "instantiateItem: reuse created view");
         requeryIfNeeded(type);
         container.addView(view);
         return view;
@@ -425,6 +426,7 @@ public class LibraryPagerAdapter
     public void requeryIfNeeded(int type){
         LibraryAdapter adapter = mAdapters[type];
         if(adapter != null && mRequeryNeeded[type]){
+            Log.d("Test :","Requeired");
             postRunQuery(adapter);
         }
     }
@@ -456,6 +458,75 @@ public class LibraryPagerAdapter
         Intent intent = (id == -1 ? createHeaderIntent(view) : mCurrentAdapter.createData(view));
         mActivity.onItemClicked(intent);
     }
+
+    //==========================Xử lý với các limiter của Adapters==============================//
+    public void clearLimiter(int type){
+        if(mArtistAdapter == null) {
+            mPendingArtistLimiter = null;
+        }else{
+            mArtistAdapter.setLimiter(null);
+            requestRequery(mArtistAdapter);
+        }
+
+        if(mAlbumAdapter == null) {
+            mPendingAlbumLimiter = null;
+        }else{
+            mAlbumAdapter.setLimiter(null);
+            requestRequery(mAlbumAdapter);
+        }
+
+        if(mSongAdapter == null) {
+            mPendingSongLimiter = null;
+        }else{
+            mSongAdapter.setLimiter(null);
+            requestRequery(mSongAdapter);
+        }
+    }
+
+
+    /**
+     * Cập nhật lại các adatpers với cái limiter được đưa vào
+     *
+     * @param limiter    được đưa vào để thực hiện
+     * @return ra một cái tab,là cái tab cần được chuyển đến khi expand cái row trong listview ra
+     */
+    public int setLimiter(Limiter limiter){
+        int tab;
+
+        switch (limiter.type){
+            case MediaUtils.TYPE_ALBUM:
+                if(mSongAdapter == null) {
+                    mPendingSongLimiter = limiter;
+                }else{
+                    mSongAdapter.setLimiter(limiter);
+                    requestRequery(mSongAdapter);
+                }
+                tab = mSongsPosition;
+                break;
+            case MediaUtils.TYPE_ARTIST:
+                if (mAlbumAdapter == null) {
+                    mPendingAlbumLimiter = limiter;
+                } else {
+                    mAlbumAdapter.setLimiter(limiter);
+                    requestRequery(mAlbumAdapter);
+                }
+                if (mSongAdapter == null) {
+                    mPendingSongLimiter = limiter;
+                } else {
+                    mSongAdapter.setLimiter(limiter);
+                    requestRequery(mSongAdapter);
+                }
+                tab = mAlbumsPosition;
+                if (tab == -1)
+                    tab = mSongsPosition;
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported limiter type: " + limiter.type);
+        }
+
+        return tab;
+    }
+    //==========================Xử lý với các limiter của Adapters==============================//
 
     private static Intent createHeaderIntent(View header) {
         header = (View) header.getParent();//tag is set on parent view of header

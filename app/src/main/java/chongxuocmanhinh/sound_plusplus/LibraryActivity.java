@@ -59,10 +59,20 @@ public class LibraryActivity extends Activity
 
     }
 
-
-    public void onItemClicked(Intent rowData){
-        int action = mDefaultAction;
+    @Override
+    protected void onStart() {
+        super.onStart();
+       // mDefaultAction =
     }
+
+    //=====================Khi pagerAdapter bắt được clickListener thì gọi tới đống này===================//
+    public void onItemClicked(Intent rowData){
+        //int action = mDefaultAction;
+        if(rowData.getBooleanExtra(LibraryAdapter.DATA_EXPANDABLE, false)){
+        }
+    }
+
+
 
     //=======================================Handler.Callback==============================//
     @Override

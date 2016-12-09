@@ -277,8 +277,8 @@ public class MediaAdapter extends BaseAdapter
      *              title || artist || album LIKE %Beyoncé% AND title || artist || album LIKE %Sorry%   (***)
      *
      *              //2 trường hợp,song nó ko có cái nào dưới nó nữa,nên ko cần filters
-     *              AND     artist_id == ?                  (*)
-     *                      artist_id == ? AND album_id == ?(**)
+     *              AND     artist_id == ?              (*)(Cái này cho album)
+     *                      album_id == ?               (**)(Cái này là cho song)
      *
      *       //Sẽ thay cái %1$s gì đồ này thành ASC hay DSC
      *      ORDER BY artist_key %1$s, number_of_tracks %1$s,artist_key %1$s
