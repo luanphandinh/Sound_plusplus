@@ -177,7 +177,7 @@ public class MediaAdapter extends BaseAdapter
                 break;
             case MediaUtils.TYPE_ALBUM:
                 mStore = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
-                mFields = new String[] {MediaStore.Audio.Albums.ALBUM};
+                mFields = new String[] { MediaStore.Audio.Albums.ALBUM, MediaStore.Audio.Albums.ARTIST};
                 mFieldKeys = new String[] {MediaStore.Audio.Albums.ALBUM_KEY,MediaStore.Audio.Albums.ARTIST};
                 mSongSort = MediaUtils.ALBUM_SORT;
                 mSortEntries = new int[] { R.string.name, R.string.artist_album, R.string.year
