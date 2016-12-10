@@ -49,7 +49,7 @@ public class SoundPlusPlusTabLayout extends SlidingTabLayout {
 	protected TextView createDefaultTabView(Context context) {
 		TextView view = super.createDefaultTabView(context);
 		//.setTextColor(getResources().getColorStateList(ch.teamuit.android.soundplusplus.R.color.tab_text_selector));
-		//view.setBackgroundResource(ch.teamuit.android.soundplusplus.R.drawable.unbound_ripple_light);
+		view.setBackgroundResource(chongxuocmanhinh.sound_plusplus.R.drawable.unbound_ripple_light);
 		view.setMaxLines(1);
 		view.setEllipsize(TextUtils.TruncateAt.END);
 		view.setTextSize(14);

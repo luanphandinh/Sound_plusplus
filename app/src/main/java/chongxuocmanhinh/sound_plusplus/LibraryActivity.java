@@ -25,6 +25,8 @@ import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import Support.isoched.tabs.SoundPlusPlusTabLayout;
+
 public class LibraryActivity extends Activity
                 implements Handler.Callback,
                             View.OnClickListener
@@ -49,6 +51,7 @@ public class LibraryActivity extends Activity
     private LibraryAdapter mCurrentAdapter;
 
     private BottomBarControls mBottomBarControls;
+    private SoundPlusPlusTabLayout mSoundPlusPlusTabLayout;
     /**
      * Hai cái dưới này dùng để update khi mà có limiter nào đó được set
      */
@@ -91,6 +94,17 @@ public class LibraryActivity extends Activity
             PermissionRequestActivity.showWarning(this, getIntent());
         }
 
+
+        mSoundPlusPlusTabLayout = (SoundPlusPlusTabLayout)findViewById(R.id.sliding_tabs);
+        mSoundPlusPlusTabLayout.setOnPageChangeListener(mPagerAdapter);
+
+        loadTabOrder();
+    }
+
+    private void loadTabOrder(){
+        if(mPagerAdapter.loadTabOrder()){
+            mSoundPlusPlusTabLayout.setViewPager(mViewPager);
+        }
     }
 
     @Override
