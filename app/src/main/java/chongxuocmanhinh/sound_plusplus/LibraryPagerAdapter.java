@@ -320,6 +320,13 @@ public class LibraryPagerAdapter
         return view;
     }
 
+    public Limiter getCurrentLimiter(){
+        LibraryAdapter current = mCurrentAdapter;
+        if(current == null)
+            return null;
+        return current.getLimiter();
+    }
+
     /**
      *
      * @return
