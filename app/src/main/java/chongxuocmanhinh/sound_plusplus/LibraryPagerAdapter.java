@@ -374,10 +374,10 @@ public class LibraryPagerAdapter
                 int index = msg.arg1;
                 mAdapters[index].commitQuery(msg.obj);
                 Cursor cursor = (Cursor) msg.obj;
-                cursor.moveToFirst();
-                while(cursor.moveToNext()){
-                    Log.d("Test","New Data");
-                }
+//                cursor.moveToFirst();
+//                while(cursor.moveToNext()){
+//                    Log.d("Test","New Data");
+//                }
                 break;
             }
             case MSG_REQUEST_REQUERY:

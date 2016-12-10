@@ -168,6 +168,7 @@ public class MediaAdapter extends BaseAdapter
         switch (type){
             case MediaUtils.TYPE_ARTIST:
                 mStore = MediaStore.Audio.Artists.EXTERNAL_CONTENT_URI;
+//                Log.d("Test","URI :  " + MediaStore.Audio.Artists.EXTERNAL_CONTENT_URI);
                 mFields = new String[] {MediaStore.Audio.Artists.ARTIST};
                 mFieldKeys = new String[] {MediaStore.Audio.Artists.ARTIST_KEY};
                 mSongSort = MediaUtils.DEFAULT_SORT;
