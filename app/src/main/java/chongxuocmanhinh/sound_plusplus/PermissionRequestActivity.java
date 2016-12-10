@@ -3,12 +3,14 @@ package chongxuocmanhinh.sound_plusplus;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 
 /**
  * Created by L on 10/12/2016.
@@ -74,4 +76,56 @@ public class PermissionRequestActivity extends Activity {
         }
     }
 
+    /**
+     * Hiện thông báo cho người dùng nếu chưa cho phép READ_EXTERNAL_STORAGE permission
+     * @param activity
+     * @param intent
+     */
+    public static void showWarning(final LibraryActivity activity, final Intent intent){
+        LayoutInflater inflater = LayoutInflater.from(activity);
+        View view = inflater.inflate(R.layout.permission_request,null,false);
+
+        view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                PermissionRequestActivity.requestPermission(activity,intent);
+            }
+        });
+
+        ViewGroup parent = (ViewGroup)activity.findViewById(R.id.content); // main layout of library_content
+        parent.addView(view, -1);
+    }
+
+    /**
+     * Chạy permission reqeust dialog nếu cần thiết
+     * @param activity
+     * @param callbackIntent
+     * @return
+     */
+    public static boolean requestPermission(Activity activity,Intent callbackIntent){
+        boolean havePermissions = havePermissions(activity);
+        if(havePermissions == false){
+            Intent intent = new Intent(activity,PermissionRequestActivity.class);
+            intent.putExtra("callbackIntent",callbackIntent);
+            activity.startActivity(intent);
+        }
+
+        return !havePermissions;
+    }
+
+    /**
+     * Kiểm tra xem tất cả các permission và app mình cần đã được granted chưa
+     * @param context
+     * @return
+     */
+    public static boolean havePermissions(Context context){
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+            for(String permission : NEEDED_PERMISSIONS){
+                if(context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 }
