@@ -73,5 +73,5 @@ public class PermissionRequestActivity extends Activity {
             android.os.Process.killProcess(android.os.Process.myPid());
         }
     }
-    
+
 }
