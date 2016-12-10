@@ -66,6 +66,10 @@ public class LibraryActivity extends Activity
         mViewPager.setAdapter(mPagerAdapter);
         mPagerAdapter.notifyDataSetChanged();
 
+        if(PermissionRequestActivity.havePermissions(this) == false) {
+            PermissionRequestActivity.showWarning(this, getIntent());
+        }
+
     }
 
     @Override
