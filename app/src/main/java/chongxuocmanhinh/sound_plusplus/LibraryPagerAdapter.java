@@ -476,6 +476,15 @@ public class LibraryPagerAdapter
     }
 
     //=========================AdapterView.OnItemClickListenerr=================//
+
+    /**
+     * Khi mà cái item trong listview được click thì tạo dữ liệu từ row đó
+     * đưa vào intent và truyền vào mActivity để xử lý
+     * @param parent
+     * @param view
+     * @param position
+     * @param id
+     */
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         Log.d("Test :","LibraryPagerAdatper : onItemClick");
@@ -485,6 +494,11 @@ public class LibraryPagerAdapter
     }
 
     //==========================Xử lý với các limiter của Adapters==============================//
+
+    /**
+     * Xóa hết các limiter hiện có
+     * @param type
+     */
     public void clearLimiter(int type){
         if(mArtistAdapter == null) {
             mPendingArtistLimiter = null;
