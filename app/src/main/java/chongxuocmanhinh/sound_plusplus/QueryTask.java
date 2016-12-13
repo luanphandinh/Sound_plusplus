@@ -13,11 +13,18 @@ public class QueryTask {
     public final String selection;
     public final String[] selectionArgs;
     public String sortOrder;
-
+    /**
+     * One of SongTimeline.MODE_*.
+     */
+    public int mode;
     /**
      * Type of the group being query
      */
     public int type;
+    /**
+     * Data. Cần dữ liệu phụ thuộc vào giá trị của mode
+     */
+    public long data;
 
     public QueryTask(Uri uri,String[] projection, String selection, String[] selectionArgs,String sortOrder) {
         this.uri = uri;

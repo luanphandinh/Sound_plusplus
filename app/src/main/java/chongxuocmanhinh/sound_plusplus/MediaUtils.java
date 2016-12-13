@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.text.TextUtils;
+import android.util.Log;
 
 import java.text.Collator;
 
@@ -235,4 +236,58 @@ public class MediaUtils {
             return arr.length-1;
         }
     }
+
+    public static QueryTask buildQuery(int type,long id,String[] projection,String selection){
+        switch (type) {
+            case TYPE_ARTIST:
+            case TYPE_ALBUM:
+            case TYPE_SONG:
+                Log.d("TestPlay","BuildSongQuery");
+                return buildMediaQuery(type, id, projection, selection);
+            default:
+                throw new IllegalArgumentException("Specified type not valid: " + type);
+        }
+    }
+
+    /**
+     * Build cái query để return tất cả bài hát thông qua các tham số được truyền vào
+     * @param type
+     * @param id
+     * @param projection
+     * @param select
+     * @return
+     */
+    private static QueryTask buildMediaQuery(int type,long id,String[] projection,String select){
+        Uri media = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        StringBuilder selection = new StringBuilder();
+
+        switch (type){
+            case TYPE_SONG:
+                Log.d("TestPlay","Append id" + id);
+                selection.append(MediaStore.Audio.Media._ID);
+                break;
+            case TYPE_ARTIST:
+                selection.append(MediaStore.Audio.Media.ARTIST_ID);
+                break;
+            case TYPE_ALBUM:
+                selection.append(MediaStore.Audio.Media.ALBUM_ID);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid type specified: " + type);
+        }
+
+        selection.append("=");
+        selection.append(id);
+        selection.append(" AND length(_data) AND "+MediaStore.Audio.Media.IS_MUSIC);
+
+        if (select != null) {
+            selection.append(" AND ");
+            selection.append(select);
+        }
+
+        QueryTask result = new QueryTask(media, projection, selection.toString(), null, null);
+        result.type = type;
+        return result;
+    }
+
 }

@@ -22,6 +22,8 @@
         <activity
             android:name="chongxuocmanhinh.sound_plusplus.PermissionRequestActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <service android:name=".PlaybackService"></service>
     </application>
 
 </manifest>

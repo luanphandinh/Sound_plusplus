@@ -1,6 +1,7 @@
 package chongxuocmanhinh.sound_plusplus;
 import android.app.Activity;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
@@ -63,6 +64,27 @@ public class LibraryActivity extends Activity
      */
     private int mDefaultAction;
 
+    /**
+     * Khi click vào cái row nào thì expand
+     */
+    public static final int ACTION_EXPAND = 6;
+
+    /**
+     * Khi click vào row,chơi nhạc tại row đó
+     */
+    public static final int ACTION_PLAY = 0;
+
+    /**
+     * row click,ko làm gì hết.
+     */
+    public static final int ACTION_DO_NOTHING = 5;
+
+    /**
+     * The SongTimeLine add song modes tương ứng với mỗi action ở trên.
+     */
+    private static final int[] modeForAction =
+            { SongTimeLine.MODE_PLAY, SongTimeLine.MODE_ENQUEUE, -1,-1, -1, -1, -1};
+
 //    private HorizontalScrollView mLimiterScrollView;
 //    private ViewGroup mLimiterViews;
 
@@ -110,16 +132,71 @@ public class LibraryActivity extends Activity
     @Override
     protected void onStart() {
         super.onStart();
-       // mDefaultAction =
+        mDefaultAction = ACTION_EXPAND;
     }
 
     //=====================Khi pagerAdapter bắt được clickListener thì gọi tới đống này===================//
     public void onItemClicked(Intent rowData){
-        //int action = mDefaultAction;
+        int action = mDefaultAction;
         Log.d("Test :","LibraryActivity : OnItemClicked");
-        if(rowData.getBooleanExtra(LibraryAdapter.DATA_EXPANDABLE, false)){
+        if(action == ACTION_EXPAND && rowData.getBooleanExtra(LibraryAdapter.DATA_EXPANDABLE, false)){
             onItemExpanded(rowData);
+        }else if (action != ACTION_DO_NOTHING){
+            if(action == ACTION_EXPAND){
+                //Mặc định thì mình để nó play cái gì mà ko expand được
+                action = ACTION_PLAY;
+            }
+            pickSongs(rowData,action);
         }
+
+    }
+
+    /**
+     * Ta sẽ add cái bài hát được truyền vào,cụ thể ở đây là intent,
+     * sau đó đưa vào song timline.
+     * @param intent
+     * @param action
+     */
+    private void pickSongs(Intent intent,int action){
+        Log.d("TestPlay","Pick Song");
+        long id = intent.getLongExtra("id", LibraryAdapter.INVALID_ID);
+        int mode = action;
+
+        final QueryTask queryTask = buildQueryFromIntent(intent,false,null);
+        queryTask.mode = modeForAction[mode];
+        final Context context = this;
+        Thread test = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                PlaybackService.get(context).addSongs(queryTask);
+            }
+        });
+        test.start();
+//        PlaybackService.get(this).addSongs(queryTask);
+    }
+
+
+    /**
+     * Build mediaqeury dựa trên dữ liệu được đưa vào thông qua intent
+     *
+     * @param intent Itnet dùng để tạo queryTask
+     * {@link LibraryAdapter#createData(View)}.
+     * @param empty nếu empty để true,thì ta sử dụng Song.EMPTY_PROJECTION query duy nhất thằng id ra.
+     * @param allSource sử dụng mediaAdapter để query tất cả item được giữ
+     */
+    protected QueryTask buildQueryFromIntent(Intent intent, boolean empty, MediaAdapter allSource)
+    {
+        Log.d("TestPlay","Build Query by MediaUtils");
+        int type = intent.getIntExtra("type",MediaUtils.TYPE_INVALID);
+
+        String[] projection = Song.FILLED_PROJECTION;
+        //Cần handle cho thằng playlist,để sau tính
+        long id = intent.getLongExtra("id", LibraryAdapter.INVALID_ID);
+        QueryTask queryTask;
+
+        queryTask = MediaUtils.buildQuery(type, id, projection, null);
+
+        return queryTask;
     }
 
     public void onItemExpanded(Intent rowData){

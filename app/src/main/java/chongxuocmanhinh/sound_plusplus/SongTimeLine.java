@@ -1,6 +1,10 @@
 package chongxuocmanhinh.sound_plusplus;
 
 import android.content.Context;
+import android.database.CrossProcessCursor;
+import android.database.Cursor;
+
+import java.util.ArrayList;
 
 /**
  * Created by L on 06/12/2016.
@@ -60,4 +64,136 @@ public class SongTimeLine {
      *
      */
     public static final int MODE_ENQUEUE = 2;
+
+    private final Context mContext;
+    /**
+     * Tất cả các bài hát hiện đang được chứa trong songTimeLine.Mỗi đối tượng
+     * Song là duy nhất,dù cho có cùng tham chiếu đến 1 media
+     */
+    private ArrayList<Song> mSongs = new ArrayList<Song>(12);
+
+    private Song mSavedPrevious;
+    private Song mSavedCurrent;
+    private Song mSavedNext;
+    private int mCurrentPos;
+    private int mSavedPos;
+    private int mSavedSize;
+
+    /**
+     * Interface dùng để phản ứng với các thay đổi của songTimeLine
+     */
+    public interface Callback {
+        /**
+         * Called when an active song in the timeline is replaced by a method
+         * other than shiftCurrentSong()
+         *
+         * @param delta The distance from the current song. Will always be -1,
+         * 0, or 1.
+         * @param song The new song at the position
+         */
+        void activeSongReplaced(int delta, Song song);
+
+        /**
+         * Called when the timeline state has changed and should be saved to
+         * storage.
+         */
+        void timelineChanged();
+
+        /**
+         * Called when the length of the timeline has changed.
+         */
+        void positionInfoChanged();
+    }
+
+    /**
+     *Callback hieenjt ại nếu có
+     */
+    private Callback mCallback;
+
+    public SongTimeLine(Context context)
+    {
+        mContext = context;
+    }
+
+    /**
+     * Chạy cái queyr được truyền vào,sau đó add các kết quả trả về vào song timeline
+     *
+     * @param context Context mà mình dùng
+     * @param queryTask queryTask dùng để chạy.biến mode được khởi tạo
+     *                  với một trong các giá trị của SongTimeLine.MODE_*
+     *                  biến type và data cũng cần phải được khởi tạo đựa trên mode được đưa vào
+     * @return
+     */
+    public int addSongs(Context context,QueryTask queryTask){
+        Cursor cursor = queryTask.runQuery(context.getContentResolver());
+        if(cursor == null)
+            return 0;
+
+        int mode = queryTask.mode;
+        int type = queryTask.type;
+        long data = queryTask.data;
+
+        int count = cursor.getCount();
+
+        if(count == 0) {
+            cursor.close();
+            return 0;
+        }
+
+        ArrayList<Song> timeline = mSongs;
+
+        synchronized (this) {
+            switch (mode){
+                case MODE_PLAY:
+                    timeline.clear();
+                    mCurrentPos = 0;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid mode: " + mode);
+            }
+
+            cursor.moveToPosition(0);
+            Song song = new Song(-1);
+            song.populate(cursor);
+            timeline.add(0,song);
+            cursor.close();
+        }
+
+        broadcastChangedSongs();
+        return 1;
+    }
+
+    public Song getSong(int delta){
+        ArrayList<Song> timeline = mSongs;
+        Song song;
+        synchronized (this) {
+            int pos = mCurrentPos + delta;
+            int size = timeline.size();
+            song = timeline.get(pos);
+        }
+        if (song == null)
+            // we have no songs in the library
+            return null;
+        return song;
+    }
+
+    /**
+     * Broadcast the active songs that have changed since the last call to
+     * saveActiveSongs()
+     *
+     */
+    private void broadcastChangedSongs()
+    {
+        if (mCallback == null) return;
+
+        Song current = getSong(0);
+
+        mCallback.activeSongReplaced(0, current);
+    }
+
+    public void setCallback(Callback callback)
+    {
+        mCallback = callback;
+    }
+
 }
