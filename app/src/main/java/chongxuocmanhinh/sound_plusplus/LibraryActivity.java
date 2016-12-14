@@ -28,7 +28,7 @@ import android.widget.TextView;
 
 import Support.isoched.tabs.SoundPlusPlusTabLayout;
 
-public class LibraryActivity extends PlaybackActiviy
+public class LibraryActivity extends SlidingPlaybackActivity
                 implements Handler.Callback,
                             View.OnClickListener
 {
@@ -121,6 +121,7 @@ public class LibraryActivity extends PlaybackActiviy
         mSoundPlusPlusTabLayout.setOnPageChangeListener(mPagerAdapter);
 
         loadTabOrder();
+        bindControlButtons();
     }
 
     private void loadTabOrder(){
@@ -284,7 +285,7 @@ public class LibraryActivity extends PlaybackActiviy
     //=======================================Handler.Callback==============================//
     @Override
     public boolean handleMessage(Message msg) {
-        return false;
+        return super.handleMessage(msg);
     }
 
 

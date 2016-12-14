@@ -7,8 +7,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.os.Message;
 import android.os.Process;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 
@@ -17,7 +19,8 @@ import android.widget.ImageButton;
  */
 public abstract class PlaybackActiviy extends Activity
     implements  Handler.Callback,
-                View.OnClickListener
+                View.OnClickListener,
+                TimelineCallback
 {
 
     /**
@@ -46,6 +49,8 @@ public abstract class PlaybackActiviy extends Activity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        PlaybackService.addTimelineCallback(this);
+
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         HandlerThread thread = new HandlerThread(getClass().getName(), Process.THREAD_PRIORITY_LOWEST);
         thread.start();
@@ -57,6 +62,7 @@ public abstract class PlaybackActiviy extends Activity
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        PlaybackService.removeTimelineCallback(this);
     }
 
     @Override
@@ -67,7 +73,8 @@ public abstract class PlaybackActiviy extends Activity
             onServiceReady();
         }
         else{
-            startService(new Intent(this,PlaybackActiviy.class));
+            Log.d("TestPlay","StartService");
+            startService(new Intent(this,PlaybackService.class));
         }
     }
 
@@ -77,11 +84,55 @@ public abstract class PlaybackActiviy extends Activity
      */
     protected void onServiceReady(){
         PlaybackService service = PlaybackService.get(this);
+        Log.d("TestPlay","ServiceReady");
+        setSong(service.getSong(0));
+    }
+    /**
+     * Called when the current song changes.
+     *
+     * @param song The new song
+     */
+    protected void onSongChange(Song song)
+    {
 
     }
 
     protected void setSong(final Song song){
-//        mLastSongEvent =  System.nanoTime();
+        mLastSongEvent =  System.nanoTime();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run()
+            {
+                onSongChange(song);
+            }
+        });
+    }
 
+    public void setSong(long uptime, Song song){
+        if (uptime > mLastSongEvent) {
+            setSong(song);
+            mLastSongEvent = uptime;
+        }
+    }
+
+    @Override
+    public boolean handleMessage(Message msg) {
+        return false;
+    }
+
+    protected void bindControlButtons(){
+        View previousButton = findViewById(R.id.previous);
+        previousButton.setOnClickListener(this);
+        mPlayPauseButton = (ImageButton)findViewById(R.id.play_pause);
+        mPlayPauseButton.setOnClickListener(this);
+        View nextButton = findViewById(R.id.next);
+        nextButton.setOnClickListener(this);
+
+        mShuffleButton = (ImageButton)findViewById(R.id.shuffle);
+        mShuffleButton.setOnClickListener(this);
+        registerForContextMenu(mShuffleButton);
+        mEndButton = (ImageButton)findViewById(R.id.end_action);
+        mEndButton.setOnClickListener(this);
+        registerForContextMenu(mEndButton);
     }
 }

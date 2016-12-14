@@ -18,6 +18,7 @@ import android.widget.Toast;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * Created by L on 07/11/2016.
@@ -42,6 +43,11 @@ public class PlaybackService extends Service
     private Song mCurrentSong;
     SongTimeLine mSongTimeLine;
 
+    /**
+     * mảng static tham chiếu đến các playbackActivities, sử dụng cho các hàm callbacks
+     */
+    private static final ArrayList<TimelineCallback> sCallbacks = new ArrayList<TimelineCallback>(5);
+
     private String mErrorMessage;
 
     /**
@@ -58,6 +64,7 @@ public class PlaybackService extends Service
     public void onCreate() {
         HandlerThread thread = new HandlerThread("PlaybackService", Process.THREAD_PRIORITY_DEFAULT);
         thread.start();
+        Log.d("PlayTest","Created Service");
         mSongTimeLine = new SongTimeLine(this);
         mSongTimeLine.setCallback(this);
         mMediaPlayer = getNewMediaPLayer();
@@ -97,6 +104,18 @@ public class PlaybackService extends Service
         return sInstance;
     }
 
+
+    public static void addTimelineCallback(TimelineCallback consumer)
+    {
+        sCallbacks.add(consumer);
+    }
+
+
+    public static void removeTimelineCallback(TimelineCallback consumer)
+    {
+        sCallbacks.remove(consumer);
+    }
+
     private SoundPlusPLusMediaPlayer getNewMediaPLayer(){
         SoundPlusPLusMediaPlayer mp = new SoundPlusPLusMediaPlayer(this);
         mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
@@ -126,7 +145,7 @@ public class PlaybackService extends Service
             else {
                 prepareMediaPlayer(mMediaPlayer, song.path);
             }
-
+            mMediaPlayerInitialized = true;
         } catch (IOException e) {
             Log.d("Test","Error!");
 
@@ -147,7 +166,10 @@ public class PlaybackService extends Service
      */
     private static final int MSG_QUERY = 2;
 
+    private static final int MSG_BROADCAST_CHANGE = 10;
+
     private static final int MSG_PROCESS_SONG = 13;
+
     @Override
     public boolean handleMessage(Message msg) {
         switch (msg.what){
@@ -156,6 +178,10 @@ public class PlaybackService extends Service
                 break;
             case MSG_PROCESS_SONG:
                 processSong((Song)msg.obj);
+                break;
+            case MSG_BROADCAST_CHANGE:
+                TimestampedObject tso = (TimestampedObject)msg.obj;
+                broadcastChange(msg.arg1, (Song)tso.object, tso.uptime);
                 break;
             default:
                 return false;
@@ -200,6 +226,17 @@ public class PlaybackService extends Service
             setCurrentSong(0);
     }
 
+    @Override
+    public void timelineChanged() {
+
+    }
+
+    @Override
+    public void positionInfoChanged() {
+
+    }
+
+
     public Song setCurrentSong(int delta){
         if (mMediaPlayer == null)
             return null;
@@ -213,29 +250,67 @@ public class PlaybackService extends Service
 
         mMediaPlayerInitialized = false;
         mHandler.sendMessage(mHandler.obtainMessage(MSG_PROCESS_SONG, song));
+        mMediaPlayerInitialized = false;
+        mHandler.sendMessage(mHandler.obtainMessage(MSG_PROCESS_SONG, song));
+        mHandler.sendMessage(mHandler.obtainMessage(MSG_BROADCAST_CHANGE, -1, 0, new TimestampedObject(song)));
         return song;
     }
 
     public Song getSong(int delta){
         if(mSongTimeLine == null)
             return null;
-        if (delta == 0)
-            return mCurrentSong;
+//        if (delta == 0)
+//            return mCurrentSong;
         return mSongTimeLine.getSong(delta);
     }
 
-    @Override
-    public void timelineChanged() {
 
+    /**
+     * Returns the current position in current song in milliseconds.
+     */
+    public int getPosition()
+    {
+        if (!mMediaPlayerInitialized) {
+            Log.d("TestPlay","mMediaPlayerInitialized = false");
+            return 0;
+        }
+        return mMediaPlayer.getCurrentPosition();
     }
 
-    @Override
-    public void positionInfoChanged() {
 
+    /**
+     * Seek to a position in the current song.
+     *
+     * @param progress Proportion of song completed (where 1000 is the end of the song)
+     */
+    public void seekToProgress(int progress)
+    {
+        if (!mMediaPlayerInitialized)
+            return;
+        long position = (long)mMediaPlayer.getDuration() * progress / 1000;
+        mMediaPlayer.seekTo((int)position);
     }
+
 
 
     public static boolean hasInstance(){
         return sInstance != null;
+    }
+
+    /**
+     *
+     * @param state
+     * @param song
+     * @param uptime
+     */
+    private void broadcastChange(int state, Song song, long uptime){
+
+        if (song != null) {
+            ArrayList<TimelineCallback> list = sCallbacks;
+            for (int i = list.size(); --i != -1; )
+                list.get(i).setSong(uptime, song);
+        }
+
+
     }
 }
