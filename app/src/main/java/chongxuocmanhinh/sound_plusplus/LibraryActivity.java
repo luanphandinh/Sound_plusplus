@@ -28,7 +28,7 @@ import android.widget.TextView;
 
 import Support.isoched.tabs.SoundPlusPlusTabLayout;
 
-public class LibraryActivity extends Activity
+public class LibraryActivity extends PlaybackActiviy
                 implements Handler.Callback,
                             View.OnClickListener
 {
@@ -165,14 +165,14 @@ public class LibraryActivity extends Activity
         final QueryTask queryTask = buildQueryFromIntent(intent,false,null);
         queryTask.mode = modeForAction[mode];
         final Context context = this;
-        Thread test = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                PlaybackService.get(context).addSongs(queryTask);
-            }
-        });
-        test.start();
-//        PlaybackService.get(this).addSongs(queryTask);
+//        Thread test = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                PlaybackService.get(context).addSongs(queryTask);
+//            }
+//        });
+        //test.start();
+        PlaybackService.get(this).addSongs(queryTask);
     }
 
 

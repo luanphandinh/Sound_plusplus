@@ -1,12 +1,14 @@
 package chongxuocmanhinh.sound_plusplus;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Process;
+import android.provider.Settings;
 import android.view.View;
 import android.widget.ImageButton;
 
@@ -50,5 +52,36 @@ public abstract class PlaybackActiviy extends Activity
 
         mLooper = thread.getLooper();
         mHandler = new Handler(mLooper,this);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        if(PlaybackService.hasInstance()){
+            onServiceReady();
+        }
+        else{
+            startService(new Intent(this,PlaybackActiviy.class));
+        }
+    }
+
+    /**
+     * Cấu hình các thành phần của activity khi mà PlaybackService được khởi tạo và có thể sử dụng
+     * để tương tác.
+     */
+    protected void onServiceReady(){
+        PlaybackService service = PlaybackService.get(this);
+
+    }
+
+    protected void setSong(final Song song){
+//        mLastSongEvent =  System.nanoTime();
+
     }
 }

@@ -216,6 +216,14 @@ public class PlaybackService extends Service
         return song;
     }
 
+    public Song getSong(int delta){
+        if(mSongTimeLine == null)
+            return null;
+        if (delta == 0)
+            return mCurrentSong;
+        return mSongTimeLine.getSong(delta);
+    }
+
     @Override
     public void timelineChanged() {
 
@@ -225,5 +233,9 @@ public class PlaybackService extends Service
     public void positionInfoChanged() {
 
     }
-    //=======================SongTimeLine.CallBack===============================//
+
+
+    public static boolean hasInstance(){
+        return sInstance != null;
+    }
 }

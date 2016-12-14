@@ -4,6 +4,8 @@ import android.content.Context;
 import android.database.CrossProcessCursor;
 import android.database.Cursor;
 
+import junit.framework.Assert;
+
 import java.util.ArrayList;
 
 /**
@@ -117,6 +119,8 @@ public class SongTimeLine {
 
     /**
      * Chạy cái queyr được truyền vào,sau đó add các kết quả trả về vào song timeline
+     * Tùy trường hợp mà add,nếu nghệ sĩ và album thì ta sẽ add tất cả bài hát liên quan vào trong
+     * danh sách hiện đang được giữ
      *
      * @param context Context mà mình dùng
      * @param queryTask queryTask dùng để chạy.biến mode được khởi tạo
@@ -163,7 +167,16 @@ public class SongTimeLine {
         return 1;
     }
 
+    /**
+     * Trả về bài hát ở vị trí delta được đặt so với bài hát hiện tại
+     * ví dụ trả về bài trước bài hiện tại thì delta = -1 bài đằng sau thì delta = 1
+     * @param delta
+     * @return
+     */
     public Song getSong(int delta){
+        //Kiểm tra xem delta có hợp lệ hay không
+        Assert.assertTrue(delta >= -1 && delta <= 1);
+
         ArrayList<Song> timeline = mSongs;
         Song song;
         synchronized (this) {
