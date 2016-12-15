@@ -153,10 +153,6 @@ public class SlidingPlaybackActivity extends PlaybackActiviy
         return true;
     }
     //=====================================View.OnClickListener=========================//
-    @Override
-    public void onClick(View v) {
-
-    }
 
     //======================================SlidingView.Callback===========================//
     @Override

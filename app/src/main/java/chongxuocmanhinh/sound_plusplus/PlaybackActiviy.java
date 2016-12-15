@@ -13,6 +13,7 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 /**
  * Created by L on 07/11/2016.
@@ -41,6 +42,9 @@ public abstract class PlaybackActiviy extends Activity
     protected ImageButton mShuffleButton;
     protected ImageButton mEndButton;
 
+    /**
+     * Trạng thái của thằng service chạy phí dưới
+     */
     protected int mState;
     private  long mLastStateEvent;
     private  long mLastSongEvent;
@@ -135,4 +139,60 @@ public abstract class PlaybackActiviy extends Activity
         mEndButton.setOnClickListener(this);
         registerForContextMenu(mEndButton);
     }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.next:
+                //shiftCurrentSong(SongTimeline.SHIFT_NEXT_SONG);
+                break;
+            case R.id.play_pause:
+                Log.d("TestPlayPause","Clicked playpause button");
+                playPause();
+                break;
+            case R.id.previous:
+               // rewindCurrentSong();
+                break;
+            case R.id.end_action:
+               // cycleFinishAction();
+                break;
+            case R.id.shuffle:
+                //cycleShuffle();
+                break;
+        }
+    }
+
+    public void playPause(){
+        PlaybackService service = PlaybackService.get(this);
+        int state = service.playPause();
+        setState(state);
+    }
+
+    /**
+     * Được gọi khi trạng thái của playbackService bị thay đổi
+     * @param state
+     * @param toggled
+     */
+    protected void onStateChange(int state,int toggled){
+        if ((toggled & PlaybackService.FLAG_PLAYING) != 0 && mPlayPauseButton != null) {
+            mPlayPauseButton.setImageResource((state & PlaybackService.FLAG_PLAYING) == 0 ? R.drawable.play : R.drawable.pause);
+        }
+    }
+    protected void setState(final int state){
+        mLastStateEvent = System.nanoTime();
+
+        if(mState != state){
+            final int toggled = mState ^ state;
+            mState = state;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run()
+                {
+                    onStateChange(state, toggled);
+                }
+            });
+        }
+    }
+
+
 }

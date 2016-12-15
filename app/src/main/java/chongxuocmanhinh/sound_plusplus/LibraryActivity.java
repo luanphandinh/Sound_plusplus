@@ -309,7 +309,7 @@ public class LibraryActivity extends SlidingPlaybackActivity
         if (view == mBottomBarControls) {
             return;
         }
-        if(view.getTag() != null){
+        else if(view.getTag() != null){
             int i = (int) view.getTag();
 
             Limiter limiter = mPagerAdapter.getCurrentLimiter();
@@ -321,6 +321,8 @@ public class LibraryActivity extends SlidingPlaybackActivity
             }
 
             updateLimiterViews();
+        }else{
+            super.onClick(view);
         }
     }
 }

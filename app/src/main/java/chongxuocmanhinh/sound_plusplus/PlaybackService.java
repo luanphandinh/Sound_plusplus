@@ -54,6 +54,41 @@ public class PlaybackService extends Service
      * Object được dùng  PlaybackService startup waiting.
      */
     private static final Object[] sWait = new Object[0];
+
+    /**
+     * Object dùng để lock các trạng thái khi đang synchronized
+     */
+    final  Object[] mStateLock = new Object[0];
+    /**
+     *Nếu được set,thì sẽ play nhạc.
+     */
+    public static final int FLAG_PLAYING = 0x1;
+    /**
+     * Được set khi không có media nào trong device.
+     */
+    public static final int FLAG_NO_MEDIA = 0x2;
+    /**
+     * Set khi xảy ra lỗi,có thể là bài hát ko mở được.
+     */
+    public static final int FLAG_ERROR = 0x4;
+    /**
+     * Được Set khi người dùng cần phải chọn bài hát.
+     */
+    public static final int FLAG_EMPTY_QUEUE = 0x8;
+    public static final int SHIFT_FINISH = 4;
+    /**
+     * The PlaybackService state, indicating if the service is playing,
+     * repeating, etc.
+     *
+     * The format of this is 0b00000000_00000000_000000gff_feeedcba,
+     * where each bit is:
+     *     a:   {@link PlaybackService#FLAG_PLAYING}
+     *     b:   {@link PlaybackService#FLAG_NO_MEDIA}
+     *     c:   {@link PlaybackService#FLAG_ERROR}
+     *     d:   {@link PlaybackService#FLAG_EMPTY_QUEUE}
+     */
+    int mState;
+
     /**
      * Dùng để sử dụng ở mọi nơi,Single-ton.
      */
@@ -77,6 +112,7 @@ public class PlaybackService extends Service
         mLooper = thread.getLooper();
         mHandler = new Handler(mLooper, this);
 
+//        mState !=
         sInstance = this;
         synchronized (sWait) {
             sWait.notifyAll();
@@ -131,6 +167,7 @@ public class PlaybackService extends Service
 
     private void processSong(Song song){
         try {
+
             mMediaPlayerInitialized = false;
             mMediaPlayer.reset();
             Log.d("Test","Song path : " + song.path);
@@ -145,7 +182,12 @@ public class PlaybackService extends Service
             else {
                 prepareMediaPlayer(mMediaPlayer, song.path);
             }
+
             mMediaPlayerInitialized = true;
+
+            if ((mState & FLAG_PLAYING) != 0)
+                mMediaPlayer.start();
+
         } catch (IOException e) {
             Log.d("Test","Error!");
 
@@ -158,6 +200,85 @@ public class PlaybackService extends Service
         Log.d("TestPlay","Service Add song");
         mHandler.sendMessage(mHandler.obtainMessage(MSG_QUERY, query));
     }
+
+    /**
+     * If playing, pause. If paused, play.
+     *
+     * @return The new state after this is called.
+     */
+    public int playPause()
+    {
+        Log.d("TestPlayPause","Enter service playpause()");
+        synchronized (mStateLock) {
+            if ((mState & FLAG_PLAYING) != 0)
+                return pause();
+            else
+                return play();
+        }
+    }
+
+    /**
+     * Bắt đầu chơi nhạc nếu đang pause
+     * @return
+     */
+    public int play(){
+        Log.d("TestPlayPause","Enter service play()");
+        synchronized (mStateLock){
+            if((mState & FLAG_EMPTY_QUEUE) != 0){
+                setCurrentSong(0);
+            }
+
+            int state = updateState(mState | FLAG_PLAYING);
+            return state;
+        }
+    }
+
+    public int pause() {
+        Log.d("TestPlayPause","Enter service pause()");
+        synchronized (mStateLock) {
+            int state = updateState(mState & ~FLAG_PLAYING);
+            return state;
+        }
+    }
+
+    /**
+     * Thay đổi state của service
+     * @param state
+     * @return
+     */
+    private int updateState(int state){
+        if((state & (FLAG_EMPTY_QUEUE|FLAG_ERROR|FLAG_NO_MEDIA)) != 0)
+            state &= ~FLAG_PLAYING;
+
+        int oldState = mState;
+        mState = state;
+
+        if(state != oldState){
+            mHandler.sendMessage(mHandler.obtainMessage(MSG_PROCESS_STATE, oldState, state));
+            mHandler.sendMessage(mHandler.obtainMessage(MSG_BROADCAST_CHANGE, state, 0, new TimestampedObject(null)));
+        }
+        return state;
+    }
+
+
+    private void processNewState(int oldState,int state){
+        Log.d("TestPlayPause","processNewState()");
+        int toggled = oldState ^ state;
+        if( (toggled & FLAG_PLAYING) != 0 && mCurrentSong != null ){
+            if((state & FLAG_PLAYING) != 0){//Nếu đang pause và state mới là play
+                Log.d("TestPlayPause","mMediaPlayer.start()");
+                if (mMediaPlayerInitialized)
+                    mMediaPlayer.start();
+
+            }
+            else{//Nếu state mới là pause
+                Log.d("TestPlayPause"," mMediaPlayer.pause();");
+                if (mMediaPlayerInitialized)
+                    mMediaPlayer.pause();
+            }
+        }
+
+    }
     //=========================Handler.Callback=====================================//
     /**
      * Chạy query và add các kết quả vào songtimeline.
@@ -165,11 +286,9 @@ public class PlaybackService extends Service
      * obj là  QueryTask. arg1 là chế độ add (add mode) (one of SongTimeLine.MODE_*)
      */
     private static final int MSG_QUERY = 2;
-
     private static final int MSG_BROADCAST_CHANGE = 10;
-
     private static final int MSG_PROCESS_SONG = 13;
-
+    private static final int MSG_PROCESS_STATE = 14;
     @Override
     public boolean handleMessage(Message msg) {
         switch (msg.what){
@@ -182,6 +301,9 @@ public class PlaybackService extends Service
             case MSG_BROADCAST_CHANGE:
                 TimestampedObject tso = (TimestampedObject)msg.obj;
                 broadcastChange(msg.arg1, (Song)tso.object, tso.uptime);
+                break;
+            case MSG_PROCESS_STATE:
+                processNewState(msg.arg1,msg.arg2);
                 break;
             default:
                 return false;
@@ -250,9 +372,8 @@ public class PlaybackService extends Service
 
         mMediaPlayerInitialized = false;
         mHandler.sendMessage(mHandler.obtainMessage(MSG_PROCESS_SONG, song));
-        mMediaPlayerInitialized = false;
-        mHandler.sendMessage(mHandler.obtainMessage(MSG_PROCESS_SONG, song));
         mHandler.sendMessage(mHandler.obtainMessage(MSG_BROADCAST_CHANGE, -1, 0, new TimestampedObject(song)));
+
         return song;
     }
 
