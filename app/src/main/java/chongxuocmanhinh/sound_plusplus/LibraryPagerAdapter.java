@@ -582,4 +582,19 @@ public class LibraryPagerAdapter
         intent.putExtra(LibraryAdapter.DATA_TYPE, type);
         return intent;
     }
+
+
+    /**
+     * Set text cho dòng đầu tiên của các apdater song,album,artist
+     * @param text
+     */
+    public void setHeaderText(String text){
+        if (mArtistHeader != null)
+            mArtistHeader.getTextView().setText(text);
+        if (mAlbumHeader != null)
+            mAlbumHeader.getTextView().setText(text);
+        if (mSongHeader != null)
+            mSongHeader.getTextView().setText(text);
+        mHeaderText = text;
+    }
 }

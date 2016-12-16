@@ -47,7 +47,9 @@ public class LibraryActivity extends SlidingPlaybackActivity
      */
     public LibraryPagerAdapter mPagerAdapter;
     /**
-     * The adapter for the currently visible list.
+     * Adapter cho list đang được hiển thị.
+     * được set mỗi lần pagechange ở viewpager thông qua {@link LibraryPagerAdapter#setPrimaryItem(ViewGroup, int, Object)}
+     * sau đó gọi vào hàm {@link LibraryActivity#onPageChanged(int, LibraryAdapter)}
      */
     private LibraryAdapter mCurrentAdapter;
 
@@ -63,6 +65,10 @@ public class LibraryActivity extends SlidingPlaybackActivity
      * Hành động được thực thi khi một dòng được nhấp
      */
     private int mDefaultAction;
+    /**
+     * Hành động được sử dụng gần nhất từ menu. được sử dụng với ACTION_LAST_USED.
+     */
+    private int mLastAction = ACTION_PLAY;
 
     /**
      * Khi click vào cái row nào thì expand
@@ -75,7 +81,26 @@ public class LibraryActivity extends SlidingPlaybackActivity
     public static final int ACTION_PLAY = 0;
 
     /**
-     * row click,ko làm gì hết.
+     * Khi click vào row: đưa row vào hàng đợi.
+     */
+    public static final int ACTION_ENQUEUE = 1;
+    /**
+     *Khi click vào row: thực hiện action được sử dụng gần nhất.
+     */
+    public static final int ACTION_LAST_USED = 2;
+    /**
+     * Khi click vào row: chạy tất cả các bài hát trong adapter hiện tại
+     * bắt đầu từ row được click
+     */
+    public static final int ACTION_PLAY_ALL = 3;
+    /**
+     * Khi click vào row: xếp vào hàng đợi tất cả bài hát trong adapter hiện tại
+     * bắt đầu từ row
+     */
+    public static final int ACTION_ENQUEUE_ALL = 4;
+
+    /**
+     * Khi click vào row:ko làm gì hết.
      */
     public static final int ACTION_DO_NOTHING = 5;
 
@@ -134,12 +159,21 @@ public class LibraryActivity extends SlidingPlaybackActivity
     protected void onStart() {
         super.onStart();
         mDefaultAction = ACTION_EXPAND;
+        mLastActedId = LibraryAdapter.INVALID_ID;
+        updateHeaders();
     }
 
     //=====================Khi pagerAdapter bắt được clickListener thì gọi tới đống này===================//
+
+    /**
+     * Được gọi khi người dùng clcik vào bất kì row nào trên listview thông quan
+     * {@link LibraryPagerAdapter#onItemClick}
+     *
+     * @param rowData
+     */
     public void onItemClicked(Intent rowData){
         int action = mDefaultAction;
-        Log.d("Test :","LibraryActivity : OnItemClicked");
+        Log.d("Testtt","LibraryActivity : OnItemClicked");
         if(action == ACTION_EXPAND && rowData.getBooleanExtra(LibraryAdapter.DATA_EXPANDABLE, false)){
             onItemExpanded(rowData);
         }else if (action != ACTION_DO_NOTHING){
@@ -153,29 +187,62 @@ public class LibraryActivity extends SlidingPlaybackActivity
     }
 
     /**
-     * Ta sẽ add cái bài hát được truyền vào,cụ thể ở đây là intent,
-     * sau đó đưa vào song timline.
+     * Sử dụng dữ liệu từ dòng được click trên
+     * {@link LibraryActivity#onItemClicked(Intent)}
+     * thông qua dữ liệu từ intent,ta sẽ add một hay nhiều bài hát vào trong service để play
      * @param intent
      * @param action
      */
     private void pickSongs(Intent intent,int action){
-        Log.d("TestPlay","Pick Song");
+        Log.d("Testtt","Pick Song");
         long id = intent.getLongExtra("id", LibraryAdapter.INVALID_ID);
-        int mode = action;
 
-        final QueryTask queryTask = buildQueryFromIntent(intent,false,null);
+        /**
+         * query tất cả bài hát khi người dùng muốn play tất cả
+         */
+        boolean all = false;
+        int mode = action;
+        if(action == ACTION_PLAY_ALL || action == ACTION_ENQUEUE_ALL){
+            int type = mCurrentAdapter.getMediaTypes();
+            boolean notPlayAllAdapter = type >  MediaUtils.TYPE_SONG || id == LibraryAdapter.HEADER_ID;
+            if(mode == ACTION_ENQUEUE_ALL && notPlayAllAdapter){
+                mode = ACTION_ENQUEUE;
+            }else if(mode == ACTION_PLAY_ALL && notPlayAllAdapter) {
+                mode = ACTION_PLAY;
+            }else{
+                all = true;
+            }
+        }
+
+        if(id == LibraryAdapter.HEADER_ID)
+            all = true;
+        /**
+         * Để tiết kiệm thời gian,ở trên {@link MediaAdapter#buildQuery(String[], boolean)}
+         * Ta chỉ query chủ yếu phần id và text
+         * Ở đây sau khi row được click,dựa vào dữ liệu được truyền.ta sẽ queery hết tất
+         * cả dữ liệu của các bài hát dự trên {@link Song#FILLED_PROJECTION}
+         *
+         * Nếu muốn chơi hết tất cả bài hát (ở đây là tất cả bài hát trong adapter luôn)
+         * thì all = true,adapter sẽ queery tất cả bài hát.
+         * Nếu chỉ muốn play các bài hát liên qua tới row được pick thì truyền null vào
+         */
+        final QueryTask queryTask = buildQueryFromIntent(intent,false,( all ? (MediaAdapter)(mCurrentAdapter) : null));
         queryTask.mode = modeForAction[mode];
-        final Context context = this;
-//        Thread test = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                PlaybackService.get(context).addSongs(queryTask);
-//            }
-//        });
-        //test.start();
         PlaybackService.get(this).addSongs(queryTask);
+        mLastActedId = id;
+
+        if(mDefaultAction == ACTION_LAST_USED && mLastAction != action){
+            mLastAction = action;
+            updateHeaders();
+        }
     }
 
+    private void updateHeaders(){
+        int action = mDefaultAction;
+        boolean isEnqueue = action == ACTION_ENQUEUE || action == ACTION_ENQUEUE_ALL;
+        String text = getString(isEnqueue ? R.string.enqueue_all : R.string.play_all);
+        mPagerAdapter.setHeaderText(text);
+    }
 
     /**
      * Build mediaqeury dựa trên dữ liệu được đưa vào thông qua intent
@@ -187,15 +254,24 @@ public class LibraryActivity extends SlidingPlaybackActivity
      */
     protected QueryTask buildQueryFromIntent(Intent intent, boolean empty, MediaAdapter allSource)
     {
-        Log.d("TestPlay","Build Query by MediaUtils");
+        Log.d("Testtt","Build Query by MediaUtils");
         int type = intent.getIntExtra("type",MediaUtils.TYPE_INVALID);
 
-        String[] projection = Song.FILLED_PROJECTION;
-        //Cần handle cho thằng playlist,để sau tính
+        String[] projection;
+        if (type == MediaUtils.TYPE_PLAYLIST)
+            projection = empty ? Song.EMPTY_PLAYLIST_PROJECTION : Song.FILLED_PLAYLIST_PROJECTION;
+        else
+            projection = empty ? Song.EMPTY_PROJECTION : Song.FILLED_PROJECTION;
+
         long id = intent.getLongExtra("id", LibraryAdapter.INVALID_ID);
         QueryTask queryTask;
 
-        queryTask = MediaUtils.buildQuery(type, id, projection, null);
+        if(allSource != null) {
+            queryTask = allSource.buildSongQuery(projection);
+            queryTask.data = id;
+        }
+        else
+            queryTask = MediaUtils.buildQuery(type, id, projection, null);
 
         return queryTask;
     }

@@ -197,7 +197,7 @@ public class PlaybackService extends Service
     }
 
     public void addSongs(QueryTask query){
-        Log.d("TestPlay","Service Add song");
+        Log.d("Testtt","Service Add song");
         mHandler.sendMessage(mHandler.obtainMessage(MSG_QUERY, query));
     }
 
@@ -316,6 +316,7 @@ public class PlaybackService extends Service
      * @param query
      */
     public void runQuery(QueryTask query){
+        Log.d("Testtt","Service run query");
         int count = mSongTimeLine.addSongs(this,query);
         int text;
         switch (query.mode) {
@@ -350,7 +351,9 @@ public class PlaybackService extends Service
 
     @Override
     public void timelineChanged() {
-
+        ArrayList<TimelineCallback> list = sCallbacks;
+        for (int i = list.size(); --i != -1; )
+            list.get(i).onTimelineChanged();
     }
 
     @Override
@@ -431,7 +434,23 @@ public class PlaybackService extends Service
             for (int i = list.size(); --i != -1; )
                 list.get(i).setSong(uptime, song);
         }
+    }
+
+    /**
+     * Trả về bài hát tại vị trí trong queue.
+     * @param id
+     * @return
+     */
+    public Song getSongByQueuePosition(int id) {
+        return mSongTimeLine.getSongByQueuePosition(id);
+    }
 
 
+    public int getTimelinePosition(){
+        return mSongTimeLine.getPosition() ;
+    }
+
+    public int getTimeLineLength(){
+        return mSongTimeLine.getLength();
     }
 }

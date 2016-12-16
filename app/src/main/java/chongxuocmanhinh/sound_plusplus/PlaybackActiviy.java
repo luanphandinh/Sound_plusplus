@@ -112,6 +112,11 @@ public abstract class PlaybackActiviy extends Activity
         });
     }
 
+    @Override
+    public void onTimelineChanged() {
+
+    }
+
     public void setSong(long uptime, Song song){
         if (uptime > mLastSongEvent) {
             setSong(song);
@@ -147,6 +152,7 @@ public abstract class PlaybackActiviy extends Activity
                 //shiftCurrentSong(SongTimeline.SHIFT_NEXT_SONG);
                 break;
             case R.id.play_pause:
+                Log.d("TestShowQueue","----");
                 Log.d("TestPlayPause","Clicked playpause button");
                 playPause();
                 break;

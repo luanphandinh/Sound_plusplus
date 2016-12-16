@@ -3,6 +3,7 @@ package chongxuocmanhinh.sound_plusplus;
 import android.content.Context;
 import android.database.CrossProcessCursor;
 import android.database.Cursor;
+import android.util.Log;
 
 import junit.framework.Assert;
 
@@ -129,6 +130,7 @@ public class SongTimeLine {
      * @return
      */
     public int addSongs(Context context,QueryTask queryTask){
+        Log.d("Testtt","songtimeline run query");
         Cursor cursor = queryTask.runQuery(context.getContentResolver());
         if(cursor == null)
             return 0;
@@ -139,7 +141,11 @@ public class SongTimeLine {
 
         int count = cursor.getCount();
 
+        /**
+         * Nếu ko query được gì thì thoats
+         */
         if(count == 0) {
+            Log.d("TestShowQueue","count = 0");
             cursor.close();
             return 0;
         }
@@ -148,6 +154,8 @@ public class SongTimeLine {
 
         synchronized (this) {
             switch (mode){
+                case MODE_ENQUEUE:
+
                 case MODE_PLAY:
                     timeline.clear();
                     mCurrentPos = 0;
@@ -156,15 +164,60 @@ public class SongTimeLine {
                     throw new IllegalArgumentException("Invalid mode: " + mode);
             }
 
-            cursor.moveToPosition(0);
-            Song song = new Song(-1);
-            song.populate(cursor);
-            timeline.add(0,song);
+            int start = timeline.size();
+
+            /**
+             * jumpSong dùng để set bài hát được play đầu tiên tùy vào các trường hợp
+             * sau khi được query
+             */
+            Song jumpSong = null;
+            int addAtPos = mCurrentPos + 1;
+
+            /**
+             * Kiếm tra xem addAtPos có lớn hơn size của timeline hay ko
+             */
+            if(addAtPos > start){
+                addAtPos = start;
+            }
+
+            /**
+             * Vòng lặp dùng để đưa tất cả bài hát được query vào danh sách để play
+             */
+            for(int index = 0 ;index != count;index++){
+                cursor.moveToPosition(index);
+
+                Song song = new Song(-1);
+                song.populate(cursor);
+                if(song.isFilled() == false) {
+                    continue;
+                }
+
+                timeline.add(addAtPos++,song);
+                Log.d("Testtt","song : " + mSongs.get(index).path);
+
+                if(jumpSong == null){
+
+                }
+            }
             cursor.close();
+            broadcastChangedSongs();
+//            cursor.moveToPosition(0);
+//            Song song = new Song(-1);
+//            song.populate(cursor);
+//            timeline.add(0,song);
+//            cursor.close();
         }
 
-        broadcastChangedSongs();
+        changed();
         return 1;
+    }
+    /**
+     * Broadcasts that the timeline state has changed.
+     */
+    private void changed()
+    {
+        if (mCallback != null)
+            mCallback.timelineChanged();
     }
 
     /**
@@ -174,15 +227,31 @@ public class SongTimeLine {
      * @return
      */
     public Song getSong(int delta){
+        Log.d("TestShowQueue","songtimeline getSong");
         //Kiểm tra xem delta có hợp lệ hay không
         Assert.assertTrue(delta >= -1 && delta <= 1);
 
         ArrayList<Song> timeline = mSongs;
         Song song;
+
         synchronized (this) {
             int pos = mCurrentPos + delta;
             int size = timeline.size();
-            song = timeline.get(pos);
+            if (pos < 0) {
+                if (size == 0)
+                    return null;
+                song = timeline.get(Math.max(0, size - 1));
+            }
+            else if (pos > size) {
+                return null;
+            }
+            else if (pos == size){
+                if(size == 0)
+                    return null;
+                else song = timeline.get(0);
+            }
+            else
+                song = timeline.get(pos);
         }
         if (song == null)
             // we have no songs in the library
@@ -197,6 +266,7 @@ public class SongTimeLine {
      */
     private void broadcastChangedSongs()
     {
+        Log.d("TestShowQueue","broadcast change song");
         if (mCallback == null) return;
 
         Song current = getSong(0);
@@ -209,4 +279,28 @@ public class SongTimeLine {
         mCallback = callback;
     }
 
+    /**
+     * Trả về bài hát tại vị trí trong queue.
+     * @param id
+     * @return
+     */
+    public Song getSongByQueuePosition(int id){
+        Song song = null;
+        synchronized (this) {
+            if (mSongs.size() > id)
+                song = mSongs.get(id);
+        }
+        return song;
+    }
+    /**
+     * Trả về vị trí của bài hát hiện tại trong timeline
+     * @return
+     */
+    public int getPosition(){
+        return mCurrentPos;
+    }
+
+    public int getLength(){
+        return mSongs.size();
+    }
 }
