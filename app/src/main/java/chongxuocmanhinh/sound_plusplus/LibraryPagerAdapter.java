@@ -11,6 +11,7 @@ import android.provider.MediaStore;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,6 +30,7 @@ public class LibraryPagerAdapter
         implements  Callback
                     ,ViewPager.OnPageChangeListener
                     ,AdapterView.OnItemClickListener
+                    ,View.OnCreateContextMenuListener
 {
     /**
      *The number of unique list types.The number of visible lists may be smaller
@@ -300,7 +302,7 @@ public class LibraryPagerAdapter
              * Cần phải gán hàm tạo context menu và hàm listtenItem click tại chỗ này
              */
             view.setOnItemClickListener(this);
-
+            view.setOnCreateContextMenuListener(this);
             view.setTag(type);
             if(header != null){
                 header.getTextView().setText(mHeaderText);
@@ -602,5 +604,14 @@ public class LibraryPagerAdapter
         if (mSongHeader != null)
             mSongHeader.getTextView().setText(text);
         mHeaderText = text;
+    }
+
+    //=========================================View.OnCreateContextMenuListener====================//
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
+        View targetView = info.targetView;
+        Intent intent = info.id == -1 ? createHeaderIntent(targetView) : mCurrentAdapter.createData(targetView);
+        mActivity.onCreateContextMenu(menu, intent);
     }
 }

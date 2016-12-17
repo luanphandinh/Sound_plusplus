@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.HorizontalScrollView;
@@ -403,4 +404,50 @@ public class LibraryActivity extends SlidingPlaybackActivity
             super.onClick(view);
         }
     }
+
+    //=====================================ContextMenu========================================//
+    private static final int CTX_MENU_PLAY = 0;
+    private static final int CTX_MENU_ENQUEUE = 1;
+    private static final int CTX_MENU_EXPAND = 2;
+    private static final int CTX_MENU_ENQUEUE_AS_NEXT = 3;
+    private static final int CTX_MENU_DELETE = 4;
+    private static final int CTX_MENU_RENAME_PLAYLIST = 5;
+    private static final int CTX_MENU_PLAY_ALL = 6;
+    private static final int CTX_MENU_ENQUEUE_ALL = 7;
+    private static final int CTX_MENU_MORE_FROM_ALBUM = 8;
+    private static final int CTX_MENU_MORE_FROM_ARTIST = 9;
+    private static final int CTX_MENU_OPEN_EXTERNAL = 10;
+
+    public void onCreateContextMenu(ContextMenu menu,Intent rowData){
+        if(rowData.getLongExtra(LibraryAdapter.DATA_ID,LibraryAdapter.INVALID_ID) == LibraryAdapter.HEADER_ID){
+            menu.setHeaderTitle(getString(R.string.all_songs));
+            menu.add(0, CTX_MENU_PLAY_ALL, 0, R.string.play_all).setIntent(rowData);
+            menu.add(0, CTX_MENU_ENQUEUE_ALL, 0, R.string.enqueue_all).setIntent(rowData);
+            menu.addSubMenu(0, CTX_MENU_ADD_TO_PLAYLIST, 0, R.string.add_to_playlist).getItem().setIntent(rowData);
+        }else{
+            int type = rowData.getIntExtra(LibraryAdapter.DATA_TYPE,MediaUtils.TYPE_INVALID);
+
+            menu.setHeaderTitle(rowData.getStringExtra(LibraryAdapter.DATA_TITLE));
+
+            menu.add(0, CTX_MENU_PLAY, 0, R.string.play).setIntent(rowData);
+            if (type <= MediaUtils.TYPE_SONG) {
+                menu.add(0, CTX_MENU_PLAY_ALL, 0, R.string.play_all).setIntent(rowData);
+            }
+            menu.add(0, CTX_MENU_ENQUEUE_AS_NEXT, 0, R.string.enqueue_as_next).setIntent(rowData);
+            menu.add(0, CTX_MENU_ENQUEUE, 0, R.string.enqueue).setIntent(rowData);
+            if (type == MediaUtils.TYPE_PLAYLIST) {
+                menu.add(0, CTX_MENU_RENAME_PLAYLIST, 0, R.string.rename).setIntent(rowData);
+            } else if (rowData.getBooleanExtra(LibraryAdapter.DATA_EXPANDABLE, false)) {
+                menu.add(0, CTX_MENU_EXPAND, 0, R.string.expand).setIntent(rowData);
+            }
+            if (type == MediaUtils.TYPE_ALBUM || type == MediaUtils.TYPE_SONG)
+                menu.add(0, CTX_MENU_MORE_FROM_ARTIST, 0, R.string.more_from_artist).setIntent(rowData);
+            if (type == MediaUtils.TYPE_SONG)
+                menu.add(0, CTX_MENU_MORE_FROM_ALBUM, 0, R.string.more_from_album).setIntent(rowData);
+            menu.addSubMenu(0, CTX_MENU_ADD_TO_PLAYLIST, 0, R.string.add_to_playlist).getItem().setIntent(rowData);
+            menu.add(0, CTX_MENU_DELETE, 0, R.string.delete).setIntent(rowData);
+        }
+
+    }
+
 }

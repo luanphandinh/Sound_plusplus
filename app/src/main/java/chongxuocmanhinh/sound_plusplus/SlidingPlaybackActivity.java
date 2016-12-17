@@ -181,4 +181,6 @@ public class SlidingPlaybackActivity extends PlaybackActiviy
     public void onStopTrackingTouch(SeekBar seekBar) {
         mSeekBarTracking = false;
     }
+
+    static final int CTX_MENU_ADD_TO_PLAYLIST = 300;
 }
