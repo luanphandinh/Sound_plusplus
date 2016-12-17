@@ -157,7 +157,7 @@ public abstract class PlaybackActiviy extends Activity
                 playPause();
                 break;
             case R.id.previous:
-               // rewindCurrentSong();
+                rewindCurrentSong();
                 break;
             case R.id.end_action:
                // cycleFinishAction();
@@ -178,6 +178,13 @@ public abstract class PlaybackActiviy extends Activity
         int state = service.playPause();
         setState(state);
     }
+
+
+    private void rewindCurrentSong()
+    {
+        setSong(PlaybackService.get(this).rewindCurrentSong());
+    }
+
 
     /**
      * Được gọi khi trạng thái của playbackService bị thay đổi

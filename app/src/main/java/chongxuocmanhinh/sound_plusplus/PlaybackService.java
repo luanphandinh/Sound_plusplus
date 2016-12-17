@@ -90,6 +90,11 @@ public class PlaybackService extends Service
     int mState;
 
     /**
+     * Chạy lại bài hát từ đầu nếu bài hát được chạy nhiều hơn 2.5
+     */
+    private static final int REWIND_AFTER_PLAYED_MS = 2500;
+
+    /**
      * Dùng để sử dụng ở mọi nơi,Single-ton.
      */
     public static PlaybackService sInstance;
@@ -102,6 +107,9 @@ public class PlaybackService extends Service
         Log.d("PlayTest","Created Service");
         mSongTimeLine = new SongTimeLine(this);
         mSongTimeLine.setCallback(this);
+
+        int state = loadState();
+
         mMediaPlayer = getNewMediaPLayer();
         mPreparedMediaPlayer = getNewMediaPLayer();
         //Ta chỉ sử dụng duy nhất một audioseissionId
@@ -111,7 +119,7 @@ public class PlaybackService extends Service
 
         mLooper = thread.getLooper();
         mHandler = new Handler(mLooper, this);
-
+        updateState(state);
 //        mState !=
         sInstance = this;
         synchronized (sWait) {
@@ -413,6 +421,37 @@ public class PlaybackService extends Service
         return mSongTimeLine.getSong(delta);
     }
 
+    /**
+     * Nhảy tới bài hát trước đó hoặc chạy lại bài hát từ đầu
+     *
+     * @return
+     */
+    public Song rewindCurrentSong(){
+        int delta = SongTimeLine.SHIFT_PREVIOUS_SONG;
+        if(isPlaying() && getPosition() > REWIND_AFTER_PLAYED_MS && getDuration() > REWIND_AFTER_PLAYED_MS*2){
+            delta = SongTimeLine.SHIFT_KEEP_SONG;
+        }
+
+        return shiftCurrentSong(delta);
+    }
+
+    /**
+     * Trả về trạng thái playing của bài hát hiện tại
+     */
+    public boolean isPlaying() {
+        Log.d("Testtt",((mState & FLAG_PLAYING) != 0) ? "":"isPlaying false");
+        return (mState & FLAG_PLAYING) != 0;
+    }
+
+    /**
+     * Trả về thời gian của bài hát dưới dạng miliseconds
+     */
+    public int getDuration()
+    {
+        if (!mMediaPlayerInitialized)
+            return 0;
+        return mMediaPlayer.getDuration();
+    }
 
     /**
      * Returns the current position in current song in milliseconds.
@@ -477,5 +516,9 @@ public class PlaybackService extends Service
 
     public int getTimeLineLength(){
         return mSongTimeLine.getLength();
+    }
+
+    public int loadState(){
+        return FLAG_PLAYING;
     }
 }
