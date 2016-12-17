@@ -362,6 +362,15 @@ public class SongTimeLine {
         }
         return song;
     }
+
+    public Song setCurrentQueuePosition(int pos){
+        synchronized (this){
+            mCurrentPos = pos;
+            broadcastChangedSongs();
+        }
+        changed();
+        return getSong(0);
+    }
     /**
      * Trả về vị trí của bài hát hiện tại trong timeline
      * @return

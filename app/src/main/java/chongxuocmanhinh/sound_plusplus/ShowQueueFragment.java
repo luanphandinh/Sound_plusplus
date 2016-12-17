@@ -33,6 +33,7 @@ public class ShowQueueFragment extends Fragment
         mListView    = (ListView) view.findViewById(R.id.list);
         mListAdapter = new ShowQueueAdapter(context, R.layout.draggable_row);
         mListView.setAdapter(mListAdapter);
+        mListView.setOnItemClickListener(this);
         PlaybackService.addTimelineCallback(this);
         return view;
     }
@@ -40,7 +41,7 @@ public class ShowQueueFragment extends Fragment
     //===========================AdapterView.OnItemClickListener=====================//
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
+        mService.jumpToQueuePosition(position);
     }
 
 

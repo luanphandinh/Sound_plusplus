@@ -515,6 +515,14 @@ public class PlaybackService extends Service
         return mSongTimeLine.getSongByQueuePosition(id);
     }
 
+    /**
+     * Nhảy tới vị trí được đưa vào
+     * @param id
+     */
+    public void jumpToQueuePosition(int id){
+        mSongTimeLine.setCurrentQueuePosition(id);
+        play();
+    }
 
     public int getTimelinePosition(){
         return mSongTimeLine.getPosition() ;
