@@ -22,4 +22,8 @@ public interface TimelineCallback {
      */
     void onTimelineChanged();
 
+    /**
+     * Thay đổi trạng thái của playback hiện tại
+     */
+    void setState(long uptime, int state);
 }

@@ -173,6 +173,8 @@ public class LibraryActivity extends SlidingPlaybackActivity
      */
     public void onItemClicked(Intent rowData){
         int action = mDefaultAction;
+        if (action == ACTION_LAST_USED)
+            action = mLastAction;
         Log.d("Testtt","LibraryActivity : OnItemClicked");
         if(action == ACTION_EXPAND && rowData.getBooleanExtra(LibraryAdapter.DATA_EXPANDABLE, false)){
             onItemExpanded(rowData);

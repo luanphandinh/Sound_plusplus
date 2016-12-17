@@ -212,5 +212,17 @@ public abstract class PlaybackActiviy extends Activity
         }
     }
 
+    /**
+     * Được gọi bởi playbackserivce để thay đổi state
+     * @param uptime
+     * @param state
+     */
+
+    public void setState(long uptime, int state){
+        if (uptime > mLastStateEvent) {
+            setState(state);
+            mLastStateEvent = uptime;
+        }
+    }
 
 }

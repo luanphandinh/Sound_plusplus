@@ -82,4 +82,9 @@ public class ShowQueueFragment extends Fragment
         if (mService != null)
             refreshSongQueueList(false);
     }
+
+    @Override
+    public void setState(long uptime, int state) {
+
+    }
 }

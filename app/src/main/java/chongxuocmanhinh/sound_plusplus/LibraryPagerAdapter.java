@@ -460,6 +460,12 @@ public class LibraryPagerAdapter
     }
 
     @Override
+    public CharSequence getPageTitle(int position)
+    {
+        return mActivity.getResources().getText(TITLES[mTabOrder[position]]);
+    }
+
+    @Override
     public void setPrimaryItem(ViewGroup container, int position, Object object) {
         int type = mTabOrder[position];
         LibraryAdapter adapter = mAdapters[type];

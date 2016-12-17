@@ -493,6 +493,12 @@ public class PlaybackService extends Service
      */
     private void broadcastChange(int state, Song song, long uptime){
 
+        if (state != -1) {
+            ArrayList<TimelineCallback> list = sCallbacks;
+            for (int i = list.size(); --i != -1; )
+                list.get(i).setState(uptime, state);
+        }
+
         if (song != null) {
             ArrayList<TimelineCallback> list = sCallbacks;
             for (int i = list.size(); --i != -1; )
@@ -519,6 +525,6 @@ public class PlaybackService extends Service
     }
 
     public int loadState(){
-        return FLAG_PLAYING;
+        return FLAG_NO_MEDIA;
     }
 }
