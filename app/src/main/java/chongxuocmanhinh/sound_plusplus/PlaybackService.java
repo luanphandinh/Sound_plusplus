@@ -361,7 +361,22 @@ public class PlaybackService extends Service
 
     }
 
+    /**
+     * Di chuyển tơi bài hát tiếp theo hay trước đó trong hàng đợi
+     * @return
+     */
+    public Song shiftCurrentSong(int delta){
+        Song song = setCurrentSong(delta);
+        return song;
+    }
 
+    /**
+     * Di chuyển tới bài hát hay album kế tiếp trong timline
+     *
+     * @param delta Là một trong  SongTimeline.SHIFT_*. 0 cungx có thể được truyền
+     *              để khởi tạo bài hát với media player ,notification.....
+     * @return The new current song
+     */
     public Song setCurrentSong(int delta){
         if (mMediaPlayer == null)
             return null;
@@ -369,8 +384,18 @@ public class PlaybackService extends Service
         if (mMediaPlayer.isPlaying())
             mMediaPlayer.stop();
 
-        Song song = mSongTimeLine.getSong(0);
+        Song song = mSongTimeLine.shiftCurrentSong(delta);
         mCurrentSong = song;
+
+        if(song == null){
+            return null;
+        }else if ((mState & (FLAG_NO_MEDIA|FLAG_EMPTY_QUEUE)) != 0){
+            synchronized (mStateLock) {
+                updateState(mState & ~(FLAG_EMPTY_QUEUE|FLAG_NO_MEDIA));
+            }
+        }
+
+
         mHandler.removeMessages(MSG_PROCESS_SONG);
 
         mMediaPlayerInitialized = false;

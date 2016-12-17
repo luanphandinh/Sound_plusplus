@@ -8,6 +8,7 @@ import android.util.Log;
 import junit.framework.Assert;
 
 import java.util.ArrayList;
+import java.util.regex.Matcher;
 
 /**
  * Created by L on 06/12/2016.
@@ -16,6 +17,7 @@ import java.util.ArrayList;
     Class này dùng để chứa danh sách các bài hát đang được play
     Hỗ trợ việc repeat và shuffle cho trình nghe nhạc
     Có các hàm dùng để fetch nhiều bài hát hơn từ MediaStore.
+    PlaybackService là một interface của lớp này
  */
 public class SongTimeLine {
     /**
@@ -81,6 +83,37 @@ public class SongTimeLine {
     private int mCurrentPos;
     private int mSavedPos;
     private int mSavedSize;
+
+    /**
+     * Di chuyển vị trí hiện tại về album trước đó.
+     *
+     * @see SongTimeLine#shiftCurrentSong(int)
+     */
+    public static final int SHIFT_PREVIOUS_ALBUM = -2;
+    /**
+     * Di chuyển vị trí hiện tại tới bài hát trước đó.
+     *
+     * @see SongTimeLine#shiftCurrentSong(int)
+     */
+    public static final int SHIFT_PREVIOUS_SONG = -1;
+    /**
+     * Noop
+     * @see SongTimeLine#shiftCurrentSong(int)
+     */
+    public static final int SHIFT_KEEP_SONG = 0;
+    /**
+     * Di chuyển vị trí hiện tại tới bài hát tiếp theo.
+     *
+     * @see SongTimeLine#shiftCurrentSong(int)
+     */
+    public static final int SHIFT_NEXT_SONG = 1;
+    /**
+     * Di chuyển vị trí hiện tại về album sau đó.
+     *
+     * @see SongTimeLine#shiftCurrentSong(int)
+     */
+    public static final int SHIFT_NEXT_ALBUM = 2;
+
 
     /**
      * Interface dùng để phản ứng với các thay đổi của songTimeLine
@@ -257,6 +290,43 @@ public class SongTimeLine {
             // we have no songs in the library
             return null;
         return song;
+    }
+
+    /**
+     * Di chuyển tới bài háy hay album tiếp theo,trước đó
+     * @param delta
+     * @return
+     */
+    public Song shiftCurrentSong(int delta)
+    {
+        synchronized (this) {
+            if (delta == SHIFT_KEEP_SONG) {
+                // ko làm gì hết,xuống duwois sẽ lấy bài hát hiện tại ra
+            }
+            else if (delta == SHIFT_PREVIOUS_SONG || delta == SHIFT_NEXT_SONG) {
+                shiftCurrentSongInternal(delta);
+            }
+        }
+
+        if (delta != SHIFT_KEEP_SONG)
+            changed();
+        return getSong(0);
+    }
+
+    /**
+     * implement cho hàm shiftCurrentSong. Làm hết tất cả trừ việc broadcast timlineChanged()
+     *
+     * @param delta
+     */
+    private void shiftCurrentSongInternal(int delta){
+        int pos = mCurrentPos + delta;
+        if(pos == mSongs.size()){
+            pos = 0;
+        }else if (pos < 0){
+            pos = Math.max(0,mSongs.size() - 1);
+        }
+
+        mCurrentPos = pos;
     }
 
     /**

@@ -149,7 +149,7 @@ public abstract class PlaybackActiviy extends Activity
     public void onClick(View v) {
         switch (v.getId()){
             case R.id.next:
-                //shiftCurrentSong(SongTimeline.SHIFT_NEXT_SONG);
+                shiftCurrentSong(SongTimeLine.SHIFT_NEXT_SONG);
                 break;
             case R.id.play_pause:
                 Log.d("TestShowQueue","----");
@@ -166,6 +166,11 @@ public abstract class PlaybackActiviy extends Activity
                 //cycleShuffle();
                 break;
         }
+    }
+
+    public void shiftCurrentSong(int delta)
+    {
+        setSong(PlaybackService.get(this).shiftCurrentSong(delta));
     }
 
     public void playPause(){
