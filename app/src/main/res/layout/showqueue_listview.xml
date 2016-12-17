@@ -7,4 +7,4 @@
     android:listSelector="?android:attr/selectableItemBackground"
     android:divider="@drawable/inset_divider"
     android:dividerHeight="1dip"
-    android:background="#354256"/>
+    android:background="#000000"/>
