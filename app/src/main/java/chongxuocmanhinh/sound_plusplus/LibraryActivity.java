@@ -21,6 +21,7 @@ import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.ContextMenu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.HorizontalScrollView;
@@ -106,10 +107,16 @@ public class LibraryActivity extends SlidingPlaybackActivity
     public static final int ACTION_DO_NOTHING = 5;
 
     /**
+     * Khi click vào row: đưa row được chọn vào vị trí tiếp theo
+     */
+    public static final int ACTION_ENQUEUE_AS_NEXT = 8;
+    /**
      * The SongTimeLine add song modes tương ứng với mỗi action ở trên.
      */
     private static final int[] modeForAction =
-            { SongTimeLine.MODE_PLAY, SongTimeLine.MODE_ENQUEUE, -1,-1, -1, -1, -1};
+            { SongTimeLine.MODE_PLAY, SongTimeLine.MODE_ENQUEUE, -1,
+                    SongTimeLine.MODE_PLAY_ID_FIRST, SongTimeLine.MODE_ENQUEUE_ID_FIRST,
+                    -1, -1, -1, SongTimeLine.MODE_ENQUEUE_AS_NEXT };
 
 //    private HorizontalScrollView mLimiterScrollView;
 //    private ViewGroup mLimiterViews;
@@ -205,14 +212,17 @@ public class LibraryActivity extends SlidingPlaybackActivity
          */
         boolean all = false;
         int mode = action;
+        //Nếu chọn 1 trong 2 options này
         if(action == ACTION_PLAY_ALL || action == ACTION_ENQUEUE_ALL){
             int type = mCurrentAdapter.getMediaTypes();
+            //Nếu nó là artist hoặc album thì notPlayAllAdapter sẽ bằng true
+            //Chỉ queery các bài hát liên quan đến row được chọn
             boolean notPlayAllAdapter = type >  MediaUtils.TYPE_SONG || id == LibraryAdapter.HEADER_ID;
             if(mode == ACTION_ENQUEUE_ALL && notPlayAllAdapter){
                 mode = ACTION_ENQUEUE;
             }else if(mode == ACTION_PLAY_ALL && notPlayAllAdapter) {
                 mode = ACTION_PLAY;
-            }else{
+            }else{//
                 all = true;
             }
         }
@@ -297,6 +307,7 @@ public class LibraryActivity extends SlidingPlaybackActivity
     }
 
     /**
+     * {@link LibraryActivity#onClick(View)}
      * Gán lại cái limiter của mLimiterType được truyền vào từ cái row đầu
      * tiên của MediaStore.Audio.Media với câu lệnh selection
      *
@@ -450,4 +461,44 @@ public class LibraryActivity extends SlidingPlaybackActivity
 
     }
 
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+
+        final Intent intent = item.getIntent();
+        switch (item.getItemId()){
+            case CTX_MENU_EXPAND:
+                expand(intent);
+                if (mDefaultAction == ACTION_LAST_USED && mLastAction != ACTION_EXPAND) {
+                    mLastAction = ACTION_EXPAND;
+                    updateHeaders();
+                }
+                break;
+            case CTX_MENU_ENQUEUE:
+                pickSongs(intent,ACTION_ENQUEUE);
+                break;
+            case CTX_MENU_PLAY:
+                pickSongs(intent,ACTION_PLAY);
+                break;
+            case CTX_MENU_PLAY_ALL:
+                pickSongs(intent,ACTION_PLAY_ALL);
+            case CTX_MENU_ENQUEUE_ALL:
+                pickSongs(intent, ACTION_ENQUEUE_ALL);
+                break;
+            case CTX_MENU_ENQUEUE_AS_NEXT:
+                pickSongs(intent, ACTION_ENQUEUE_AS_NEXT);
+                break;
+            case CTX_MENU_MORE_FROM_ARTIST:{
+                String selection;
+                if(intent.getIntExtra(LibraryAdapter.DATA_TYPE,-1) == MediaUtils.TYPE_ALBUM){
+                    selection = "album_id=";
+                }else{
+                    selection = "_id=";
+                }
+            }
+
+        }
+
+        return true;
+    }
 }

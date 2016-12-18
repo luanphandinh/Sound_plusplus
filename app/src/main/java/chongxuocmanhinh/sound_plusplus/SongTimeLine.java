@@ -70,6 +70,38 @@ public class SongTimeLine {
      */
     public static final int MODE_ENQUEUE = 2;
 
+    /**
+     *  Giống với playmode nhưng ta sẽ cho bài hát có id được play đầu tiên
+     *  bằng cách bỏ các bài hát trước đó từ queary ra ngoài sau đó sẽ gắn
+     *  lại các bài hát đó vào sau hàng đợi.Nếu có nhiều bài hát có cùng id
+     *  thì lấy bài hát đầu tiên
+     *
+     *  Truyền id qua QueryTask.data.
+     *
+     * @see SongTimeLine#addSongs(Context, QueryTask)
+     */
+    public static final int MODE_PLAY_ID_FIRST = 4;
+    /**
+     *  Giống với enqueue mode nhưng ta sẽ cho bài hát có id được play đầu tiên
+     *  bằng cách bỏ các bài hát trước đó từ queary ra ngoài sau đó sẽ gắn
+     *  lại các bài hát đó vào sau hàng đợi.Nếu có nhiều bài hát có cùng id
+     *  thì lấy bài hát đầu tiên
+     *
+     *  Truyền id qua QueryTask.data.
+     *
+     * @see SongTimeLine#addSongs(Context, QueryTask)
+     */
+    public static final int MODE_ENQUEUE_ID_FIRST = 5;
+
+    /**
+     * Enqueues the result as next item(s)
+     *
+     * Pass the position in QueryTask.data.
+     *
+     * @see SongTimeLine#addSongs(Context, QueryTask)
+     */
+    public static final int MODE_ENQUEUE_AS_NEXT = 7;
+
     private final Context mContext;
     /**
      * Tất cả các bài hát hiện đang được chứa trong songTimeLine.Mỗi đối tượng
@@ -188,8 +220,9 @@ public class SongTimeLine {
         synchronized (this) {
             switch (mode){
                 case MODE_ENQUEUE:
-
+                    break;
                 case MODE_PLAY:
+                case MODE_PLAY_ID_FIRST:
                     timeline.clear();
                     mCurrentPos = 0;
                     break;
