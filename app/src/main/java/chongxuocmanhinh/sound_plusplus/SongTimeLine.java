@@ -224,6 +224,7 @@ public class SongTimeLine {
         ArrayList<Song> timeline = mSongs;
 
         synchronized (this) {
+            saveActiveSongs();
             switch (mode){
                 case MODE_ENQUEUE:
                 case MODE_ENQUEUE_AS_NEXT:
@@ -379,9 +380,17 @@ public class SongTimeLine {
         Log.d("TestShowQueue","broadcast change song");
         if (mCallback == null) return;
 
+        Song previous = getSong(-1);
         Song current = getSong(0);
+        Song next = getSong(+1);
 
-        mCallback.activeSongReplaced(0, current);
+       if(Song.getId(mSavedPrevious) != Song.getId(previous))
+           mCallback.activeSongReplaced(-1,previous);
+        if (Song.getId(mSavedNext) != Song.getId(next))
+            mCallback.activeSongReplaced(1, next);
+        if (Song.getId(mSavedCurrent) != Song.getId(current))
+            mCallback.activeSongReplaced(0, current);
+        
     }
 
     public void setCallback(Callback callback)
@@ -427,5 +436,13 @@ public class SongTimeLine {
         synchronized (this){
             return mFinishAction == FINISH_STOP && mCurrentPos == mSongs.size() - 1;
         }
+    }
+
+    public void saveActiveSongs(){
+        mSavedPrevious = getSong(-1);
+        mSavedCurrent = getSong(0);
+        mSavedNext = getSong(+1);
+        mSavedPos = mCurrentPos;
+        mSavedSize = mSongs.size();
     }
 }
