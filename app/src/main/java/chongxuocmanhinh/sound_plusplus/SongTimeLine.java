@@ -220,6 +220,7 @@ public class SongTimeLine {
         synchronized (this) {
             switch (mode){
                 case MODE_ENQUEUE:
+                case MODE_ENQUEUE_AS_NEXT:
                     break;
                 case MODE_PLAY:
                 case MODE_PLAY_ID_FIRST:
@@ -242,7 +243,7 @@ public class SongTimeLine {
             /**
              * Kiếm tra xem addAtPos có lớn hơn size của timeline hay ko
              */
-            if(addAtPos > start){
+            if(addAtPos > start || mode != MODE_ENQUEUE_AS_NEXT){
                 addAtPos = start;
             }
 

@@ -341,6 +341,10 @@ public class LibraryActivity extends SlidingPlaybackActivity
         }
     }
 
+    /**
+     * Được gọi khi chuyển tab hoặc row có khả năng expand được click
+     * Update lại limiterView dựa trên adapter được chuyển tới
+     */
     public void updateLimiterViews(){
         mLimiterViews.removeAllViews();
 
@@ -495,7 +499,15 @@ public class LibraryActivity extends SlidingPlaybackActivity
                 }else{
                     selection = "_id=";
                 }
+                selection += intent.getLongExtra(LibraryAdapter.DATA_ID, LibraryAdapter.INVALID_ID);
+                setLimiter(MediaUtils.TYPE_ARTIST, selection);
+                updateLimiterViews();
+                break;
             }
+            case CTX_MENU_MORE_FROM_ALBUM:
+                setLimiter(MediaUtils.TYPE_ALBUM, "_id=" + intent.getLongExtra(LibraryAdapter.DATA_ID, LibraryAdapter.INVALID_ID));
+                updateLimiterViews();
+                break;
 
         }
 
