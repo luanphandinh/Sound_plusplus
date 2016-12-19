@@ -513,4 +513,18 @@ public class LibraryActivity extends SlidingPlaybackActivity
 
         return true;
     }
+
+    @Override
+    protected void onStateChange(int state, int toggled) {
+        super.onStateChange(state, toggled);
+
+        if ((state & PlaybackService.FLAG_EMPTY_QUEUE) != 0)
+            mBottomBarControls.setSong(null);
+    }
+
+    @Override
+    protected void onSongChange(Song song) {
+        super.onSongChange(song);
+        mBottomBarControls.setSong(song);
+    }
 }

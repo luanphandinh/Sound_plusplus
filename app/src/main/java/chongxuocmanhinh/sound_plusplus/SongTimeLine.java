@@ -390,7 +390,7 @@ public class SongTimeLine {
             mCallback.activeSongReplaced(1, next);
         if (Song.getId(mSavedCurrent) != Song.getId(current))
             mCallback.activeSongReplaced(0, current);
-        
+
     }
 
     public void setCallback(Callback callback)

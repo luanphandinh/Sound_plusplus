@@ -1,6 +1,7 @@
 package chongxuocmanhinh.sound_plusplus;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.util.AttributeSet;
 import android.view.MenuItem;
 import android.view.View;
@@ -67,5 +68,19 @@ public class BottomBarControls extends LinearLayout
     @Override
     public boolean onMenuItemClick(MenuItem item) {
         return false;
+    }
+
+    public void setSong(Song song){
+        if(song == null){
+            mTitle.setText(null);
+            mArtist.setText(null);
+            mCover.setImageBitmap(null);
+        }else{
+            Resources res = mContext.getResources();
+            String title = song.title == null ? res.getString(R.string.unknown) : song.title;
+            String artist = song.artist == null ? res.getString(R.string.unknown) : song.artist;
+            mTitle.setText(title);
+            mArtist.setText(artist);
+        }
     }
 }
