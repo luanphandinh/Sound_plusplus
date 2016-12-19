@@ -362,7 +362,10 @@ public class PlaybackService extends Service
         int text;
         switch (query.mode) {
             case SongTimeLine.MODE_PLAY:
-                text = R.plurals.playing;
+            case SongTimeLine.MODE_PLAY_ID_FIRST:
+                if (count != 0 && (mState & FLAG_PLAYING) == 0)
+                    setFlag(FLAG_PLAYING);
+                break;
         }
     }
 
@@ -376,6 +379,16 @@ public class PlaybackService extends Service
     @Override
     public void onCompletion(MediaPlayer mp) {
 
+        if(finishAction(mState) == SongTimeLine.FINISH_REPEAT_CURRENT){
+            setCurrentSong(0);
+        } else if (finishAction(mState) == SongTimeLine.FINISH_STOP_CURRENT){
+            unsetFlag(FLAG_PLAYING);
+            setCurrentSong(+1);
+        } else if (mSongTimeLine.isEndQueue()){
+            unsetFlag(FLAG_PLAYING);
+        }else{
+            setCurrentSong(+1);
+        }
     }
     //=======================MediaPlayer.OnErrorListener=========================//
     @Override
@@ -519,6 +532,26 @@ public class PlaybackService extends Service
     }
 
     /**
+     * Set a state flag.
+     */
+    public void setFlag(int flag)
+    {
+        synchronized (mStateLock) {
+            updateState(mState | flag);
+        }
+    }
+
+    /**
+     * Unset a state flag.
+     */
+    public void unsetFlag(int flag)
+    {
+        synchronized (mStateLock) {
+            updateState(mState & ~flag);
+        }
+    }
+
+    /**
      *
      * @param state
      * @param song
@@ -567,5 +600,17 @@ public class PlaybackService extends Service
 
     public int loadState(){
         return FLAG_NO_MEDIA;
+    }
+
+    /**
+     * Trả về finish action khi truyền trạng thái vào
+     * Đầu tiên ta đưa hết 4  bits phí sau về 0,sau đó dịch theo SHIFT_FINISH
+     * ta sẽ có được finishaction của state được truyền vào
+     *
+     * @param state
+     * @return Trạng thái sau khi kết thúc play 1 bài hát.1 trong SongTimeline.FINISH_*.
+     */
+    public static int finishAction(int state){
+        return (state & MASK_FINISH) >> SHIFT_FINISH;
     }
 }

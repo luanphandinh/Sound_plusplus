@@ -109,6 +109,12 @@ public class SongTimeLine {
      */
     private ArrayList<Song> mSongs = new ArrayList<Song>(12);
 
+    /**
+     * Hành động xảy ra khi đi đến bài nhạc cuối cùng trong danh sách
+     * hoặc kết thúc 1 bài nhạc
+     */
+    private int mFinishAction;
+
     private Song mSavedPrevious;
     private Song mSavedCurrent;
     private Song mSavedNext;
@@ -415,5 +421,11 @@ public class SongTimeLine {
 
     public int getLength(){
         return mSongs.size();
+    }
+
+    public boolean isEndQueue(){
+        synchronized (this){
+            return mFinishAction == FINISH_STOP && mCurrentPos == mSongs.size() - 1;
+        }
     }
 }
