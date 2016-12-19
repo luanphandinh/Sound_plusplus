@@ -32,6 +32,18 @@ public class PlaybackService extends Service
                 MediaPlayer.OnCompletionListener,/** Hai cái này cần phải implement*/
                 MediaPlayer.OnErrorListener
 {
+    /**
+     *Tên của file lưu các trạng thái của service
+     */
+    private static final String STATE_FILE = "state";
+    /**
+     *  Header cho state file để chỉ rõ file có đúng định dạng hay không
+     */
+    private static final long STATE_FILE_MAGIC = 0x1533574DC74B6ECL;
+    /**
+     * version của state file,chỉ rõ data order.
+     */
+    private static int STATE_VERSION = 6;
 
     private Looper mLooper;
     private Handler mHandler;
@@ -61,21 +73,40 @@ public class PlaybackService extends Service
     final  Object[] mStateLock = new Object[0];
     /**
      *Nếu được set,thì sẽ play nhạc.
+     * 1
      */
     public static final int FLAG_PLAYING = 0x1;
     /**
      * Được set khi không có media nào trong device.
+     * 0x2 = 10
      */
     public static final int FLAG_NO_MEDIA = 0x2;
     /**
      * Set khi xảy ra lỗi,có thể là bài hát ko mở được.
+     * 0x4 = 100
      */
     public static final int FLAG_ERROR = 0x4;
     /**
      * Được Set khi người dùng cần phải chọn bài hát.
+     * 0x8 = 1000
      */
     public static final int FLAG_EMPTY_QUEUE = 0x8;
     public static final int SHIFT_FINISH = 4;
+    /**
+     * 3 bit này sẽ là một trong  SongTimeline.FINISH_*.
+     * 0x7 = 111
+     * 0x7 << 4 = 111 0000
+     */
+    public static final int MASK_FINISH = 0x7 << SHIFT_FINISH;
+    public static final int SHIFT_SHUFFLE = 7;
+    /**
+     * 3 bit này sẽ là một trong SongTimeline.SHUFFLE_*.
+     * 0x7 = 111
+     * 0x7 << 7 = 11 1000 0000
+     */
+    public static final int MASK_SHUFFLE = 0x7 << SHIFT_SHUFFLE;
+    public static final int SHIFT_DUCKING = 10;
+
     /**
      * The PlaybackService state, indicating if the service is playing,
      * repeating, etc.
@@ -86,6 +117,8 @@ public class PlaybackService extends Service
      *     b:   {@link PlaybackService#FLAG_NO_MEDIA}
      *     c:   {@link PlaybackService#FLAG_ERROR}
      *     d:   {@link PlaybackService#FLAG_EMPTY_QUEUE}
+     *     eee: {@link PlaybackService#MASK_FINISH}
+     *     fff: {@link PlaybackService#MASK_SHUFFLE}
      */
     int mState;
 
