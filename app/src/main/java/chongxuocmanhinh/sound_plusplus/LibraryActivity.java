@@ -21,6 +21,7 @@ import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.ContextMenu;
+import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -424,6 +425,49 @@ public class LibraryActivity extends SlidingPlaybackActivity
         }else{
             super.onClick(view);
         }
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        switch (keyCode){
+            case KeyEvent.KEYCODE_BACK:
+                Limiter limiter = mPagerAdapter.getCurrentLimiter();
+                if(mSlidingView.isHidden() == false){
+                    mSlidingView.hideSlide();
+                    break;
+                }
+
+                if(limiter != null){
+                    int pos = -1;
+                    switch (limiter.type){
+                        case MediaUtils.TYPE_ALBUM:
+                            setLimiter(MediaUtils.TYPE_ARTIST,limiter.data.toString());
+                            pos = mPagerAdapter.mAlbumsPosition;
+                            break;
+                        case MediaUtils.TYPE_ARTIST:
+                            mPagerAdapter.clearLimiter(MediaUtils.TYPE_ARTIST);
+                            pos = mPagerAdapter.mArtistsPosition;
+                            break;
+                        case MediaUtils.TYPE_GENRE:
+                            mPagerAdapter.clearLimiter(MediaUtils.TYPE_GENRE);
+                            pos = mPagerAdapter.mGenresPosition;
+                            break;
+                    }
+
+                    if (pos == -1) {
+                        updateLimiterViews();
+                    } else {
+                        mViewPager.setCurrentItem(pos);
+                    }
+                }else{
+                    finish();
+                }
+                break;
+            default:
+                return false;
+        }
+
+        return true;
     }
 
     //=====================================ContextMenu========================================//
