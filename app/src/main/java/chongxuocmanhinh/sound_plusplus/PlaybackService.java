@@ -312,6 +312,7 @@ public class PlaybackService extends Service
         }
     }
 
+
     /**
      * Thay đổi hành động sau khi kết thúc bài hát (lặp lại,random....)
      * @param action
@@ -669,6 +670,17 @@ public class PlaybackService extends Service
         return (state & MASK_FINISH) >> SHIFT_FINISH;
     }
 
+    /**
+     * Trả về shuffle mode khi truyền trạng thái vào
+     * Đầu tiên ta đưa hết 7  bits phí sau về 0,sau đó dịch theo SHIFT_SHUFFLE(7 bits)
+     * ta sẽ có được shuffle mode của state được truyền vào
+     *
+     * @param state
+     * @return Trạng thái sau khi kết thúc play 1 bài hát.1 trong SongTimeLine.SHUFFLE_*.
+     */
+    public static int shuffleMode(int state){
+        return (state & MASK_SHUFFLE) >> SHIFT_SHUFFLE;
+    }
 
     public int loadState(){
         int state = 0;

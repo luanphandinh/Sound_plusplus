@@ -120,18 +120,38 @@ public class SongTimeLine {
      */
     private ArrayList<Song> mSongs = new ArrayList<Song>(12);
 
-    /**
-     * Hành động xảy ra khi đi đến bài nhạc cuối cùng trong danh sách
-     * hoặc kết thúc 1 bài nhạc
-     */
-    private int mFinishAction;
-
     private Song mSavedPrevious;
     private Song mSavedCurrent;
     private Song mSavedNext;
     private int mCurrentPos;
     private int mSavedPos;
     private int mSavedSize;
+
+    /**
+     * Tắt shuffle .
+     *
+     * @see SongTimeLine#setShuffleMode(int)
+     */
+    public static final int SHUFFLE_NONE = 0;
+    /**
+     * Random thứ tự của các bài hát.
+     *
+     * @see SongTimeLine#setShuffleMode(int)
+     */
+    public static final int SHUFFLE_SONGS = 1;
+    /**
+     * Random thứ tự các album,giữ lại thứ tự của các bài hát trong album
+     *
+     * @see SongTimeLine#setShuffleMode(int)
+     */
+    public static final int SHUFFLE_ALBUMS = 2;
+
+    /**
+     * Icons tương tứng với từng SHUFFLE_MODE.
+     */
+    public static final int[] SHUFFLE_ICONS =
+            { R.drawable.shuffle_inactive, R.drawable.shuffle_active, R.drawable.shuffle_album_active };
+
 
     /**
      * Di chuyển vị trí hiện tại về album trước đó.
@@ -163,7 +183,15 @@ public class SongTimeLine {
      */
     public static final int SHIFT_NEXT_ALBUM = 2;
 
-
+    /**
+     * Hành động xảy ra khi đi đến bài nhạc cuối cùng trong danh sách
+     * hoặc kết thúc 1 bài nhạc
+     */
+    private int mFinishAction;
+    /**
+     * Được sử dụng để xáo thứ tự các bài hát hoặc album
+     */
+    private int mShuffleMode;
     /**
      * Interface dùng để phản ứng với các thay đổi của songTimeLine
      */
@@ -440,6 +468,22 @@ public class SongTimeLine {
         saveActiveSongs();
         mFinishAction = action;
         broadcastChangedSongs();
+        changed();
+    }
+
+    public void setShuffleMode(int mode){
+        if(mode == mShuffleMode)
+            return;
+
+        synchronized (this){
+            saveActiveSongs();
+            mShuffleMode = mode;
+            if(mode != SHUFFLE_NONE && mFinishAction != FINISH_RANDOM && !mSongs.isEmpty()){
+
+            }
+            broadcastChangedSongs();
+        }
+
         changed();
     }
     /**
