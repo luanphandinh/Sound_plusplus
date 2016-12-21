@@ -2,13 +2,10 @@ package chongxuocmanhinh.sound_plusplus;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import android.database.CrossProcessCursor;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.util.StringBuilderPrinter;
-import android.widget.ArrayAdapter;
 
 import junit.framework.Assert;
 
@@ -19,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.regex.Matcher;
 
 /**
  * Created by L on 06/12/2016.
@@ -192,6 +188,10 @@ public class SongTimeLine {
      * Được sử dụng để xáo thứ tự các bài hát hoặc album
      */
     private int mShuffleMode;
+    /**
+     * Danh sách được chuẩn bị(shuffled) thể thay thế cho playlist.
+     */
+    private ArrayList<Song> mShuffleCache;
     /**
      * Interface dùng để phản ứng với các thay đổi của songTimeLine
      */
@@ -479,12 +479,33 @@ public class SongTimeLine {
             saveActiveSongs();
             mShuffleMode = mode;
             if(mode != SHUFFLE_NONE && mFinishAction != FINISH_RANDOM && !mSongs.isEmpty()){
-
+                ArrayList<Song> songs = getShuffleTimeLine(false);
+                mCurrentPos = songs.indexOf(mSavedCurrent);
+                mSongs = songs;
             }
             broadcastChangedSongs();
         }
 
         changed();
+    }
+
+    /**
+     * Trả về danh sách đã được xáo(dựa trên shufflemode) của timeline.
+     * Giá trị trả về sẽ được cached.
+     * @param cached
+     * @return
+     */
+    private ArrayList<Song> getShuffleTimeLine(boolean cached){
+        if (cached == false)
+            mShuffleCache = null;
+
+        if(mShuffleCache == null){
+            ArrayList<Song> songs = new ArrayList<Song>(mSongs);
+            MediaUtils.shuffle(songs,mShuffleMode == SHUFFLE_ALBUMS);
+            mShuffleCache = songs;
+        }
+
+        return new ArrayList<Song>(mShuffleCache);
     }
     /**
      * Trả về vị trí của bài hát hiện tại trong timeline

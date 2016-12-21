@@ -1,6 +1,7 @@
 package chongxuocmanhinh.sound_plusplus;
 
 import android.content.ContentResolver;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -8,6 +9,12 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 /**
  * Created by L on 07/11/2016.
@@ -288,6 +295,76 @@ public class MediaUtils {
         QueryTask result = new QueryTask(media, projection, selection.toString(), null, null);
         result.type = type;
         return result;
+    }
+
+    /**
+     * Shuffle danh sách các bài hát sử dụng Collections.shuffle().
+     * @param list
+     * @param albumShuffle
+     */
+    public static void shuffle(List<Song> list,boolean albumShuffle){
+        int size = list.size();
+        if (size < 2)
+            return;
+
+        Random random = getRandom();
+
+        if (albumShuffle) {
+            //Sort danh sách các bài hát dược truyền vào theo
+            //thứ tự từ album sau đó là bài hát
+            List<Song> tempList = new ArrayList<Song>(list);
+            Collections.sort(tempList);
+
+            //Build một cái map dựa trên albumId
+            //Để có thông tin các album là duy nhất và map với index của bài hát đầu tiên trong album
+            Map<Long, Integer> albumStartIndices = new HashMap<Long, Integer>();
+            int index = 0;
+            //Chạy hết tempList,với mỗi albumId thì sẽ có
+            //index bắt đầu của bài hát đàu tiên trong album đó trong templist
+            for (Song song : tempList) {
+                if (!albumStartIndices.containsKey(song.albumId)) {
+                    albumStartIndices.put(song.albumId, index);
+                }
+                index++;
+            }
+
+            //Lấy albumId từ map ra,sau đó shuffle
+            List<Long> shuffledAlbums = new ArrayList<Long>(albumStartIndices.keySet());
+            Collections.shuffle(shuffledAlbums, random);
+
+            //Build danh sách các bài hát từ danh sách album
+            list.clear();
+            for (Long albumId : shuffledAlbums) {
+                int songIndex = albumStartIndices.get(albumId);
+                Song song = tempList.get(songIndex);
+                do {
+                    list.add(song);
+                    songIndex++;
+                    if (songIndex < size) {
+                        song = tempList.get(songIndex);
+                    } else {
+                        break;
+                    }
+                } while (albumId == song.albumId);
+            }
+        }else{
+            Collections.shuffle(list,random);
+        }
+    }
+
+    /**
+     * Cached random instance.
+     */
+    private static Random sRandom;
+
+    /**
+     * Trả về một cái ranodm instance
+     */
+    public static Random getRandom()
+    {
+        if (sRandom == null)
+            sRandom = new Random();
+        return sRandom;
     }
 
 }

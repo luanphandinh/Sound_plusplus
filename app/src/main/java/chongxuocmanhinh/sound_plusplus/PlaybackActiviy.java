@@ -163,10 +163,11 @@ public abstract class PlaybackActiviy extends Activity
                 cycleFinishAction();
                 break;
             case R.id.shuffle:
-                //cycleShuffle();
+                cycleShuffle();
                 break;
         }
     }
+
 
     public void shiftCurrentSong(int delta)
     {
@@ -192,6 +193,13 @@ public abstract class PlaybackActiviy extends Activity
         setState(PlaybackService.get(this).cycleFinishAction());
     }
 
+    /**
+     * Thay đổi chức năng xáo bài hát của app
+     */
+    private void cycleShuffle() {
+        setState(PlaybackService.get(this).cycleShuffle());
+    }
+
 
     /**
      * Được gọi khi trạng thái của playbackService bị thay đổi
@@ -205,6 +213,10 @@ public abstract class PlaybackActiviy extends Activity
 
         if ((toggled & PlaybackService.MASK_FINISH) != 0 && mEndButton != null) {
             mEndButton.setImageResource(SongTimeLine.FINISH_ICONS[PlaybackService.finishAction(state)]);
+        }
+
+        if((toggled & PlaybackService.MASK_SHUFFLE) != 0 && mShuffleButton != null){
+            mShuffleButton.setImageResource(SongTimeLine.SHUFFLE_ICONS[PlaybackService.shuffleMode(state)]);
         }
     }
     protected void setState(final int state){

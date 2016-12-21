@@ -312,6 +312,21 @@ public class PlaybackService extends Service
         }
     }
 
+    /**
+     * Lặp vòng shuffleMode.
+     *
+     * @return The new state after this is called.
+     */
+    public int cycleShuffle()
+    {
+        synchronized (mStateLock) {
+            int mode = shuffleMode(mState) + 1;
+            if (mode > SongTimeLine.SHUFFLE_ALBUMS)
+                mode = SongTimeLine.SHUFFLE_NONE; // end reached: switch to none
+            return setShuffleMode(mode);
+        }
+    }
+
 
     /**
      * Thay đổi hành động sau khi kết thúc bài hát (lặp lại,random....)
@@ -321,6 +336,13 @@ public class PlaybackService extends Service
     public int setFinishAction(int action){
         synchronized (mStateLock){
             return updateState(mState & ~MASK_FINISH | action << SHIFT_FINISH);
+        }
+    }
+
+
+    public int setShuffleMode(int mode){
+        synchronized (mStateLock) {
+            return updateState(mState & ~MASK_SHUFFLE | mode << SHIFT_SHUFFLE);
         }
     }
 
@@ -362,6 +384,8 @@ public class PlaybackService extends Service
             }
         }
 
+        if ((toggled & MASK_SHUFFLE) != 0)
+            mSongTimeLine.setShuffleMode(shuffleMode(state));
         if ((toggled & MASK_FINISH) != 0)
             mSongTimeLine.setFinishAction(finishAction(state));
 
