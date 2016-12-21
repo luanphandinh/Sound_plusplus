@@ -1,5 +1,6 @@
 package chongxuocmanhinh.sound_plusplus;
 
+import android.annotation.SuppressLint;
 import android.app.Fragment;
 import android.content.Context;
 import android.os.Bundle;
@@ -38,6 +39,26 @@ public class ShowQueueFragment extends Fragment
         return view;
     }
 
+    @Override
+    public void onDestroyView() {
+        PlaybackService.removeTimelineCallback(this);
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        //Lấy thằng playbackservice nếu có thể
+        if (mService == null && PlaybackService.hasInstance())
+            mService = PlaybackService.get(getActivity());
+
+        //làm mới lại cái trang với đối số scroll truyền là true để nhảy tới bài hát
+        //đang được phát
+        if (mService != null)
+            refreshSongQueueList(true);
+    }
+
     //===========================AdapterView.OnItemClickListener=====================//
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -64,8 +85,26 @@ public class ShowQueueFragment extends Fragment
                 for(i = 0;i <stotal; i++){
                     mListAdapter.add(mService.getSongByQueuePosition(i));
                 }
+                if(scroll)
+                    scrollToCurrentSong(spos);
             }
         });
+    }
+
+    /**
+     * Phần này được dùng để scroll tới bài hát đang được mở
+     * Scrolls to the current song<br/>
+     * We suppress the new api lint check as lint thinks
+     * {@link android.widget.AbsListView#setSelectionFromTop(int, int)} was only added in
+     * {@link Build.VERSION_CODES#JELLY_BEAN}, but it was actually added in API
+     * level 1<br/>
+     * <a href="https://developer.android.com/reference/android/widget/AbsListView.html#setSelectionFromTop%28int,%20int%29">
+     *     Android reference: AbsListView.setSelectionFromTop()</a>
+     * @param currentSongPosition The position in {@link #mListView} of the current song
+     */
+    @SuppressLint("NewApi")
+    private void scrollToCurrentSong(int currentSongPosition){
+        mListView.setSelectionFromTop(currentSongPosition, 0); /* scroll to currently playing song */
     }
     //=========================TimeLineCallBack==========================//
     @Override
