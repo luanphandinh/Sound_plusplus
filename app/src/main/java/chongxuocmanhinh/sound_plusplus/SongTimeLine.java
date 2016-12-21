@@ -1,13 +1,24 @@
 package chongxuocmanhinh.sound_plusplus;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.database.CrossProcessCursor;
 import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.Log;
+import android.util.StringBuilderPrinter;
+import android.widget.ArrayAdapter;
 
 import junit.framework.Assert;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.regex.Matcher;
 
 /**
@@ -455,5 +466,140 @@ public class SongTimeLine {
         mSavedNext = getSong(+1);
         mSavedPos = mCurrentPos;
         mSavedSize = mSongs.size();
+    }
+
+    public int getFinishAction(){
+        return mFinishAction;
+    }
+
+    /**
+     * Lưu danh sách các bài hát được chạy và trạng thái xuống stream được đưa vào
+     * @param out
+     */
+    public void writeState(DataOutputStream out) throws IOException{
+        synchronized (this){
+            ArrayList<Song> songs = mSongs;
+
+            int size = songs.size();
+            //Ghi số lương bài hát xuống
+            out.writeInt(size);
+            //Ghi mỗi id tương tứng với mỗi bài hát xuống
+            for(int i =0;i != size;i++){
+                Song song = songs.get(i);
+                if(song == null){
+                    out.writeLong(-1);
+                } else {
+                    out.writeLong(song.id);
+                    out.writeInt(song.flags);
+                }
+            }
+
+            //Ghi bài hát đang chạy và finishaction hiện tại xuống
+            out.writeInt(mCurrentPos);
+            out.writeInt(mFinishAction);
+        }
+    }
+
+    public void readState(DataInputStream in) throws IOException{
+        synchronized (this){
+            //Đọc số lượng bài hát
+            int n = in.readInt();
+            if(n > 0){
+                ArrayList<Song> songs = new ArrayList<Song>(n);
+                /**
+                 * Đưa hết tất cả các ids của các bài hát vào câu lệnh selection
+                 //Câu truy vấn có thể xem thêm tại
+                 * @see MediaAdapter#buildQuery(String[], boolean)
+                 * Chỉ khác ở đây phần selection ta sẽ
+                 *  Where ... _ID IN(id0,id1,id2,id3,...,idn-1)
+                 */
+                StringBuilder selection = new StringBuilder("_ID IN (");
+                for (int i = 0; i != n; ++i) {
+                    long id = in.readLong();
+                    if (id == -1)
+                        continue;
+
+                    // Để index vào hàng flags để chừng ta sort lại
+                    int flags = in.readInt() & ~(~0 << Song.FLAG_COUNT) | i << Song.FLAG_COUNT;
+                    songs.add(new Song(id, flags));
+
+                    if (i != 0)
+                        selection.append(',');
+                    selection.append(id);
+                }
+                selection.append(')');
+
+                //Vì khi ta query ra thì sẽ trả về danh sách được xếp theo ids
+                //Nên trước đó ta cần xếp lại songs theo id
+                Collections.sort(songs, new IdComparator());
+
+                ContentResolver resolver = mContext.getContentResolver();
+                Uri media = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+
+                Cursor cursor = MediaUtils.queryResolver(resolver, media, Song.FILLED_PROJECTION, selection.toString(), null, "_id");
+                if (cursor != null) {
+                    if (cursor.getCount() != 0) {
+                        cursor.moveToNext();
+                        //Đầu tiên ta sẽ chạy từ songs
+                        Iterator<Song> it = songs.iterator();
+                        while (it.hasNext()) {
+                            Song e = it.next();
+                            //Vì trong danh sách có thể có các bài hát trùng nhau
+                            //và đã được sort lại theo ids tăng dần
+                            //nên với các bài hát trùng id trong songs
+                            //ta sẽ tiếp tục populate
+                            while (cursor.getLong(0) < e.id && !cursor.isLast())
+                                cursor.moveToNext();
+                            if (cursor.getLong(0) == e.id)
+                                e.populate(cursor);
+                        }
+                    }
+
+                    cursor.close();
+
+                    //Ta có thể query ra sai,hoặc ko thể populate một số
+                    //bài hát,bỏ hết nó đi
+                    Iterator<Song> it = songs.iterator();
+                    while (it.hasNext()) {
+                        Song e = it.next();
+                        if (e.isFilled() == false) {
+                            it.remove();
+                        }
+                    }
+
+                    // Đào về vị trí được lưu lúc ban đầu bằng cách so sánh flags đã chứa index
+                    Collections.sort(songs, new FlagComparator());
+
+                    mSongs = songs;
+                }
+            }
+
+            mCurrentPos = Math.min(mSongs == null ? 0 : mSongs.size(), Math.abs(in.readInt()));
+            mFinishAction = in.readInt();
+
+            // Guard against corruption
+            if (mFinishAction < 0 || mFinishAction >= FINISH_ICONS.length)
+                mFinishAction = 0;
+        }
+    }
+
+    public static class IdComparator implements Comparator<Song>{
+
+        @Override
+        public int compare(Song song1, Song song2) {
+            if(song1.id == song2.id)
+                return 0;
+            if(song1.id > song2.id)
+                return 1;
+            return -1;
+        }
+    }
+
+    public static class FlagComparator implements Comparator<Song>{
+
+        @Override
+        public int compare(Song song1, Song song2) {
+            return song1.flags - song2.flags;
+        }
     }
 }

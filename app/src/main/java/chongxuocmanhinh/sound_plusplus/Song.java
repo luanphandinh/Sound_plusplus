@@ -10,20 +10,22 @@ import android.graphics.Bitmap;
 import android.provider.MediaStore;
 
 /**
- * Represents a Song backed by the MediaStore. Includes basic metadata and
- * utilities to retrieve songs from the MediaStore.
+ * Class thể hiên cho bài hát của MediaStore.bao gồm các dữ liệu cơ bản để nhận các bài hát từ
+ * MediaStore
+
  */
 public class Song {
     /**
-     * Indicates that this song is randomly selected among all songs
+     * Bài hát được chọn ngẫu nhiên từ nhóm các bài hát nào đó
      */
     public static final int FLAG_RANDOM = 0x1;
     /**
-     * If set,this song has no cover art.If not set,this song may or may not have a cover art
+     * Ko có cờ này thì bài hát ko có hình ảnh cover,
+     * nếu có cờ này thì bài hát có thể có hoặc có thể không
      */
     public static final int FLAG_NO_COVER = 0x2;
     /**
-     * The number of flags
+     * Số lượng của cờ
      */
     public static final int FLAG_COUNT  = 2;
 
@@ -118,14 +120,14 @@ public class Song {
     public int flags;
 
     /**
-     * Initialize the song with the specified id.Call populate to fill fields
-     * to the song
+     * Khởi tạo giá trị ban đầu của bài hát với id.
+     * Gọi hàm populate để gán thông tin vào bài hát
      */
     public Song(long id){this.id = id;}
 
     /**
-     * Initialize the song with the specified id and flags.Call populate to fill fields
-     * to the song
+     * Khởi tạo giá trị ban đầu của bài hát với id và flags.
+     * Gọi hàm populate để gán thông tin vào bài hát
      */
     public Song(long id,int flags){this.id = id;this.flags = flags;}
 
@@ -140,7 +142,7 @@ public class Song {
     public  boolean isFilled(){return (id != -1 && path != null);}
 
     /**
-     * Populate fields with the data  from supplied cursor.
+     * Populate dữ liệu từ cusor được cung cấp
      * @param cursor Cursor queried with FILLED_PROJECTION projection.
      */
     public void populate(Cursor cursor) {

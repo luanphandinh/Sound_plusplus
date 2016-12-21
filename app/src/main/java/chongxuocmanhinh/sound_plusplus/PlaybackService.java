@@ -15,6 +15,9 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -54,6 +57,13 @@ public class PlaybackService extends Service
 
     private Song mCurrentSong;
     SongTimeLine mSongTimeLine;
+
+    private int mPendingSeek;
+    /**
+     * Id của bài cho mPendingSeek.bằng -1 thì bài hát ko đúng
+     * thì mPendingSeek sẽ bằng 0
+     */
+    private long mPendingSeekSong;
 
     /**
      * mảng static tham chiếu đến các playbackActivities, sử dụng cho các hàm callbacks
@@ -128,6 +138,11 @@ public class PlaybackService extends Service
     private static final int REWIND_AFTER_PLAYED_MS = 2500;
 
     /**
+     * Lưu lại danh sách nhạc đang được play hiên tại trên hàng đợi sau 5000 ms.
+     */
+    private static final int SAVE_STATE_DELAY = 5000;
+
+    /**
      * Dùng để sử dụng ở mọi nơi,Single-ton.
      */
     public static PlaybackService sInstance;
@@ -141,7 +156,7 @@ public class PlaybackService extends Service
         mSongTimeLine = new SongTimeLine(this);
         mSongTimeLine.setCallback(this);
 
-        //int state = loadState();
+        int state = loadState();
 
         mMediaPlayer = getNewMediaPLayer();
         mPreparedMediaPlayer = getNewMediaPLayer();
@@ -152,7 +167,8 @@ public class PlaybackService extends Service
 
         mLooper = thread.getLooper();
         mHandler = new Handler(mLooper, this);
-        //updateState(state);
+        updateState(state);
+        setCurrentSong(0);
 //        mState !=
         sInstance = this;
         synchronized (sWait) {
@@ -357,6 +373,7 @@ public class PlaybackService extends Service
      */
     private static final int MSG_QUERY = 2;
     private static final int MSG_BROADCAST_CHANGE = 10;
+    private static final int MSG_SAVE_STATE = 12;
     private static final int MSG_PROCESS_SONG = 13;
     private static final int MSG_PROCESS_STATE = 14;
     @Override
@@ -371,6 +388,9 @@ public class PlaybackService extends Service
             case MSG_BROADCAST_CHANGE:
                 TimestampedObject tso = (TimestampedObject)msg.obj;
                 broadcastChange(msg.arg1, (Song)tso.object, tso.uptime);
+                break;
+            case MSG_SAVE_STATE:
+                saveState(0);
                 break;
             case MSG_PROCESS_STATE:
                 processNewState(msg.arg1,msg.arg2);
@@ -435,6 +455,10 @@ public class PlaybackService extends Service
 
     @Override
     public void timelineChanged() {
+
+        mHandler.removeMessages(MSG_SAVE_STATE);
+        mHandler.sendEmptyMessageDelayed(MSG_SAVE_STATE, SAVE_STATE_DELAY);
+
         ArrayList<TimelineCallback> list = sCallbacks;
         for (int i = list.size(); --i != -1; )
             list.get(i).onTimelineChanged();
@@ -632,6 +656,7 @@ public class PlaybackService extends Service
 //
 //    }
 
+
     /**
      * Trả về finish action khi truyền trạng thái vào
      * Đầu tiên ta đưa hết 4  bits phí sau về 0,sau đó dịch theo SHIFT_FINISH
@@ -643,4 +668,43 @@ public class PlaybackService extends Service
     public static int finishAction(int state){
         return (state & MASK_FINISH) >> SHIFT_FINISH;
     }
+
+
+    public int loadState(){
+        int state = 0;
+        try {
+            DataInputStream in = new DataInputStream(openFileInput(STATE_FILE));
+
+            if (in.readLong() == STATE_FILE_MAGIC && in.readInt() == STATE_VERSION) {
+                mPendingSeek = in.readInt();
+                mPendingSeekSong = in.readLong();
+                mSongTimeLine.readState(in);
+                state |= mSongTimeLine.getFinishAction() << SHIFT_FINISH;
+            }
+
+            in.close();
+        } catch (EOFException e) {
+            Log.w("SoundPlusPlus", "Failed to load state", e);
+        } catch (IOException e) {
+            Log.w("SoundPlusPlus", "Failed to load state", e);
+        }
+
+        return state;
+    }
+
+    public void saveState(int pendingSeek){
+        try{
+            DataOutputStream out = new DataOutputStream(openFileOutput(STATE_FILE, 0));
+            Song song = mCurrentSong;
+            out.writeLong(STATE_FILE_MAGIC);
+            out.writeInt(STATE_VERSION);
+            out.writeInt(pendingSeek);
+            out.writeLong(song == null ? -1 :  song.id);
+            mSongTimeLine.writeState(out);
+            out.close();
+        }catch (IOException e){
+            Log.w("SoundPlusPlus", "Failed to save state", e);
+        }
+    }
+
 }

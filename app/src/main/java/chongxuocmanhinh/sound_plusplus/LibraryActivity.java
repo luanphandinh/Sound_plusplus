@@ -308,8 +308,9 @@ public class LibraryActivity extends SlidingPlaybackActivity
 
     /**
      * {@link LibraryActivity#onClick(View)}
-     * Gán lại cái limiter của mLimiterType được truyền vào từ cái row đầu
-     * tiên của MediaStore.Audio.Media với câu lệnh selection
+     * Gán lại cái limiter của mLimiterType
+     * Hàm này được sử dụng để nhận câu selection có sẵn,là limiter.data
+     * sau đó sử dụng limiterTYpe được truyền vào để gán lại limiter cho mPagerAdaper.
      *
      * @param limiterType loại mediaUtils.Type cần nhận
      * @param selection câu truy vấn selection
@@ -408,9 +409,14 @@ public class LibraryActivity extends SlidingPlaybackActivity
 
             Limiter limiter = mPagerAdapter.getCurrentLimiter();
             int type = limiter.type;
+            //Trường hợp i = 1,có nghĩa là cái ô màu xám thứ 2 được click,chỗ ô của album
+            //Hoặc limiter.type trả về là album
+            //thì sử dụng hàm riêng setLimiter của Activity
+            //bình thường thì ta sử dụng thằng pager để set trực tiếp
             if(i == 1 && type == MediaUtils.TYPE_ALBUM){
+                //truyền vào loại artist để set lại limiter
                 setLimiter(MediaUtils.TYPE_ARTIST, limiter.data.toString());
-            }else{
+            }else{//Nếu chọn trúng thằng nghệ sĩ,thì ta clear đi
                 mPagerAdapter.clearLimiter(type);
             }
 
