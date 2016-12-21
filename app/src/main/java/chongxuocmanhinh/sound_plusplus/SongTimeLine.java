@@ -361,7 +361,7 @@ public class SongTimeLine {
      */
     private void shiftCurrentSongInternal(int delta){
         int pos = mCurrentPos + delta;
-        if(pos == mSongs.size()){
+        if(mFinishAction != FINISH_RANDOM && pos == mSongs.size()){
             pos = 0;
         }else if (pos < 0){
             pos = Math.max(0,mSongs.size() - 1);
@@ -384,8 +384,8 @@ public class SongTimeLine {
         Song current = getSong(0);
         Song next = getSong(+1);
 
-       if(Song.getId(mSavedPrevious) != Song.getId(previous))
-           mCallback.activeSongReplaced(-1,previous);
+        if (Song.getId(mSavedPrevious) != Song.getId(previous))
+            mCallback.activeSongReplaced(-1, previous);
         if (Song.getId(mSavedNext) != Song.getId(next))
             mCallback.activeSongReplaced(1, next);
         if (Song.getId(mSavedCurrent) != Song.getId(current))
@@ -414,11 +414,22 @@ public class SongTimeLine {
 
     public Song setCurrentQueuePosition(int pos){
         synchronized (this){
+            saveActiveSongs();
             mCurrentPos = pos;
             broadcastChangedSongs();
         }
         changed();
         return getSong(0);
+    }
+    /**
+     * Gán giá trị khi kết thúc danh sách nhạc hay bài hát.Phải là một trong
+     * SongTimeline.FINISH_* (stop, repeat, or add random song).
+     */
+    public void setFinishAction(int action){
+        saveActiveSongs();
+        mFinishAction = action;
+        broadcastChangedSongs();
+        changed();
     }
     /**
      * Trả về vị trí của bài hát hiện tại trong timeline

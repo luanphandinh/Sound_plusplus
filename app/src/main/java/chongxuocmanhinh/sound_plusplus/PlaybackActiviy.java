@@ -160,7 +160,7 @@ public abstract class PlaybackActiviy extends Activity
                 rewindCurrentSong();
                 break;
             case R.id.end_action:
-               // cycleFinishAction();
+                cycleFinishAction();
                 break;
             case R.id.shuffle:
                 //cycleShuffle();
@@ -185,6 +185,13 @@ public abstract class PlaybackActiviy extends Activity
         setSong(PlaybackService.get(this).rewindCurrentSong());
     }
 
+    /**
+     * Thay đổi hành động sau khi hết bài nhạc
+     */
+    public void cycleFinishAction(){
+        setState(PlaybackService.get(this).cycleFinishAction());
+    }
+
 
     /**
      * Được gọi khi trạng thái của playbackService bị thay đổi
@@ -194,6 +201,10 @@ public abstract class PlaybackActiviy extends Activity
     protected void onStateChange(int state,int toggled){
         if ((toggled & PlaybackService.FLAG_PLAYING) != 0 && mPlayPauseButton != null) {
             mPlayPauseButton.setImageResource((state & PlaybackService.FLAG_PLAYING) == 0 ? R.drawable.play : R.drawable.pause);
+        }
+
+        if ((toggled & PlaybackService.MASK_FINISH) != 0 && mEndButton != null) {
+            mEndButton.setImageResource(SongTimeLine.FINISH_ICONS[PlaybackService.finishAction(state)]);
         }
     }
     protected void setState(final int state){

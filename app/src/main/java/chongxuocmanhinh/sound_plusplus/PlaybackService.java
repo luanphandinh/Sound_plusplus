@@ -141,7 +141,7 @@ public class PlaybackService extends Service
         mSongTimeLine = new SongTimeLine(this);
         mSongTimeLine.setCallback(this);
 
-        int state = loadState();
+        //int state = loadState();
 
         mMediaPlayer = getNewMediaPLayer();
         mPreparedMediaPlayer = getNewMediaPLayer();
@@ -152,7 +152,7 @@ public class PlaybackService extends Service
 
         mLooper = thread.getLooper();
         mHandler = new Handler(mLooper, this);
-        updateState(state);
+        //updateState(state);
 //        mState !=
         sInstance = this;
         synchronized (sWait) {
@@ -207,6 +207,7 @@ public class PlaybackService extends Service
     }
 
     private void processSong(Song song){
+
         try {
 
             mMediaPlayerInitialized = false;
@@ -229,12 +230,12 @@ public class PlaybackService extends Service
             if ((mState & FLAG_PLAYING) != 0)
                 mMediaPlayer.start();
 
+
         } catch (IOException e) {
             Log.d("Test","Error!");
 
         }
 
-        mMediaPlayer.start();
     }
 
     public void addSongs(QueryTask query){
@@ -283,21 +284,46 @@ public class PlaybackService extends Service
     }
 
     /**
+     *
+     * @return
+     */
+    public int cycleFinishAction(){
+        synchronized (mStateLock){
+            int mode = finishAction(mState) + 1;
+            if(mode > SongTimeLine.FINISH_RANDOM)
+                mode = SongTimeLine.FINISH_STOP;
+            return setFinishAction(mode);
+        }
+    }
+
+    /**
+     * Thay đổi hành động sau khi kết thúc bài hát (lặp lại,random....)
+     * @param action
+     * @return
+     */
+    public int setFinishAction(int action){
+        synchronized (mStateLock){
+            return updateState(mState & ~MASK_FINISH | action << SHIFT_FINISH);
+        }
+    }
+
+    /**
      * Thay đổi state của service
      * @param state
      * @return
      */
     private int updateState(int state){
-        if((state & (FLAG_EMPTY_QUEUE|FLAG_ERROR|FLAG_NO_MEDIA)) != 0)
+        if ((state & (FLAG_NO_MEDIA|FLAG_ERROR|FLAG_EMPTY_QUEUE)) != 0)
             state &= ~FLAG_PLAYING;
 
         int oldState = mState;
         mState = state;
 
-        if(state != oldState){
+        if (state != oldState) {
             mHandler.sendMessage(mHandler.obtainMessage(MSG_PROCESS_STATE, oldState, state));
             mHandler.sendMessage(mHandler.obtainMessage(MSG_BROADCAST_CHANGE, state, 0, new TimestampedObject(null)));
         }
+
         return state;
     }
 
@@ -305,8 +331,8 @@ public class PlaybackService extends Service
     private void processNewState(int oldState,int state){
         Log.d("TestPlayPause","processNewState()");
         int toggled = oldState ^ state;
-        if( (toggled & FLAG_PLAYING) != 0 && mCurrentSong != null ){
-            if((state & FLAG_PLAYING) != 0){//Nếu đang pause và state mới là play
+        if ( ((toggled & FLAG_PLAYING) != 0) && mCurrentSong != null) {
+            if ((state & FLAG_PLAYING) != 0) {//Nếu đang pause và state mới là play
                 Log.d("TestPlayPause","mMediaPlayer.start()");
                 if (mMediaPlayerInitialized)
                     mMediaPlayer.start();
@@ -318,6 +344,9 @@ public class PlaybackService extends Service
                     mMediaPlayer.pause();
             }
         }
+
+        if ((toggled & MASK_FINISH) != 0)
+            mSongTimeLine.setFinishAction(finishAction(state));
 
     }
     //=========================Handler.Callback=====================================//
@@ -379,14 +408,14 @@ public class PlaybackService extends Service
     @Override
     public void onCompletion(MediaPlayer mp) {
 
-        if(finishAction(mState) == SongTimeLine.FINISH_REPEAT_CURRENT){
+        if (finishAction(mState) == SongTimeLine.FINISH_REPEAT_CURRENT) {
             setCurrentSong(0);
-        } else if (finishAction(mState) == SongTimeLine.FINISH_STOP_CURRENT){
+        } else if (finishAction(mState) == SongTimeLine.FINISH_STOP_CURRENT) {
             unsetFlag(FLAG_PLAYING);
             setCurrentSong(+1);
-        } else if (mSongTimeLine.isEndQueue()){
+        } else if (mSongTimeLine.isEndQueue()) {
             unsetFlag(FLAG_PLAYING);
-        }else{
+        } else {
             setCurrentSong(+1);
         }
     }
@@ -399,6 +428,7 @@ public class PlaybackService extends Service
     //=======================SongTimeLine.CallBack===============================//
     @Override
     public void activeSongReplaced(int delta, Song song) {
+
         if (delta == 0)
             setCurrentSong(0);
     }
@@ -598,9 +628,9 @@ public class PlaybackService extends Service
         return mSongTimeLine.getLength();
     }
 
-    public int loadState(){
-        return FLAG_NO_MEDIA;
-    }
+//    public int loadState(){
+//
+//    }
 
     /**
      * Trả về finish action khi truyền trạng thái vào
