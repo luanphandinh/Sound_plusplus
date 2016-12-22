@@ -14,7 +14,7 @@ import android.provider.MediaStore;
  * MediaStore
 
  */
-public class Song {
+public class Song implements Comparable<Song>{
     /**
      * Bài hát được chọn ngẫu nhiên từ nhóm các bài hát nào đó
      */
@@ -166,6 +166,20 @@ public class Song {
         if(song == null)
             return 0;
         return song.id;
+    }
+
+    /**
+     * So sánh 2 bài hát với nhau
+     * @param otherSong
+     * @return
+     */
+    @Override
+    public int compareTo(Song otherSong) {
+        if (albumId == otherSong.albumId)
+            return trackNumber - otherSong.trackNumber;
+        if (albumId > otherSong.albumId)
+            return 1;
+        return -1;
     }
 
     /**
