@@ -596,6 +596,24 @@ public class LibraryPagerAdapter
             }
         }
     }
+
+    /**
+     * Gán sort mode cho adapter hiện tại,adapter hiện tại phải là MediaAdapter.
+     * Lưu sort mode này vào preferences và updates danh sách view của adapter hiện tại
+     * để hiển thị theo sort mode mới
+     *
+     * @param mode The sort mode. See {@link MediaAdapter#setSortMode(int)}
+     */
+    public void setSortMode(int mode)
+    {
+        MediaAdapter adapter = (MediaAdapter)mCurrentAdapter;
+        if (mode == adapter.getSortMode())
+            return;
+
+        adapter.setSortMode(mode);
+        requestRequery(adapter);
+
+    }
     //==========================Xử lý với các limiter của Adapters==============================//
 
     private static Intent createHeaderIntent(View header) {

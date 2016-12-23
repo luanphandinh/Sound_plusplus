@@ -251,7 +251,7 @@ public abstract class PlaybackActiviy extends Activity
     }
 
 
-
+    static final int MENU_SORT = 1;
     static final int MENU_PLAYBACK = 5;
     static final int MENU_SEARCH = 7;
     static final int MENU_CLEAR_QUEUE = 11;

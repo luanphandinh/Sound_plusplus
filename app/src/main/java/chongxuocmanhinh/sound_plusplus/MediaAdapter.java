@@ -539,6 +539,36 @@ public class MediaAdapter extends BaseAdapter
         return mLimiter;
     }
 
+    /**
+     * Trả về các chế độ sort hiện có của adapter.
+     *
+     * @return An array containing the resource ids of the sort mode strings.
+     */
+    public int[] getSortEntries()
+    {
+        return mSortEntries;
+    }
+
+    /**
+     *  Gán sort mode.Adapter nên được query lại sau khi gán.
+     * this.
+     *
+     * @param i index của sort mode tron mSortEntries.nếu index là âm
+     *          thì sẽ được sort ngược lại
+     */
+    public void setSortMode(int i)
+    {
+        mSortMode = i;
+    }
+
+    /**
+     * Trả về sortmode hiện tại của adapter.
+     */
+    public int getSortMode()
+    {
+        return mSortMode;
+    }
+
     @Override
     public Limiter buildLimiter(long id) {
         String[] fields;

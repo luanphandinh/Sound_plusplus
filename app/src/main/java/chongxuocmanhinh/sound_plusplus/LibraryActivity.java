@@ -1,9 +1,11 @@
 package chongxuocmanhinh.sound_plusplus;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.drawable.PaintDrawable;
@@ -26,15 +28,19 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import Support.isoched.tabs.SoundPlusPlusTabLayout;
 
 public class LibraryActivity extends SlidingPlaybackActivity
-                implements Handler.Callback,
-                            View.OnClickListener, android.widget.SearchView.OnQueryTextListener {
+                implements android.widget.SearchView.OnQueryTextListener,
+                            DialogInterface.OnClickListener,
+                            DialogInterface.OnDismissListener
+{
 
     private Looper mLooper;
     private Handler mHandler;
@@ -576,6 +582,7 @@ public class LibraryActivity extends SlidingPlaybackActivity
         super.onCreateOptionsMenu(menu);
         menu.add(0,MENU_PLAYBACK,0,R.string.playback_view);
         menu.add(0, MENU_SEARCH, 0, R.string.search).setIcon(R.drawable.ic_menu_search).setVisible(false);
+        menu.add(0, MENU_SORT, 30, R.string.sort_by);
         return true;
     }
 
@@ -591,6 +598,36 @@ public class LibraryActivity extends SlidingPlaybackActivity
             case MENU_SEARCH:
                 mBottomBarControls.showSearch(true);
                 return true;
+            case MENU_SORT:
+                MediaAdapter adapter = (MediaAdapter) mCurrentAdapter;
+                LinearLayout header = (LinearLayout) getLayoutInflater().inflate(R.layout.sort_dialog,null);
+                CheckBox reverseSort = (CheckBox) header.findViewById(R.id.reverse_sort);
+
+                int[] itemIds = adapter.getSortEntries();
+                String[] items = new String[itemIds.length];
+                Resources res = getResources();
+                for(int i = itemIds.length;--i != -1;){
+                    items[i] = res.getString(itemIds[i]);
+                }
+
+                int mode = adapter.getSortMode();
+                if(mode < 0){
+                    mode =~ mode;
+                    reverseSort.setChecked(true);
+                }
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle(R.string.sort_by);
+                //phần mode + 1 là để hiển thị dấu check tại vị trí thích hợp
+                builder.setSingleChoiceItems(items, mode + 1, this); // cộng 1 cho header
+                builder.setNeutralButton(R.string.done, null);
+
+                AlertDialog dialog = builder.create();
+                dialog.getListView().addHeaderView(header);
+                dialog.setOnDismissListener(this);
+                dialog.show();
+                return true;
+
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -623,5 +660,24 @@ public class LibraryActivity extends SlidingPlaybackActivity
     public boolean onQueryTextChange(String newText) {
        mPagerAdapter.setFilter(newText);
         return true;
+    }
+    //============================== DialogInterface.OnClickListener=========================//
+    @Override
+    public void onClick(DialogInterface dialog, int which) {
+        dialog.dismiss();
+    }
+    //============================== DialogInterface.OnDismissListener======================//
+    @Override
+    public void onDismiss(DialogInterface dialog) {
+        ListView list = ((AlertDialog)dialog).getListView();
+        //Trừ đi 1 cho header
+        int which = list.getCheckedItemPosition() - 1;
+
+        CheckBox reverseSort = (CheckBox)list.findViewById(R.id.reverse_sort);
+        if (reverseSort.isChecked()) {
+            which = ~which;
+        }
+
+        mPagerAdapter.setSortMode(which);
     }
 }
