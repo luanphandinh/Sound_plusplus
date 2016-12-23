@@ -757,4 +757,12 @@ public class PlaybackService extends Service
         }
     }
 
+
+    /**
+     * Bỏ bài hát ra khỏi hàng đợi
+     * @param which index to remove
+     */
+    public void removeSongPosition(int which) {
+        mSongTimeLine.removeSongPosition(which);
+    }
 }

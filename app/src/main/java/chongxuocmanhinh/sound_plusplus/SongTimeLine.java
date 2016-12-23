@@ -514,6 +514,25 @@ public class SongTimeLine {
         }
         changed();
     }
+
+    public void removeSongPosition(int pos){
+        synchronized (this){
+            ArrayList<Song> songs = mSongs;
+
+            if(songs.size() < pos)
+                return;
+
+            saveActiveSongs();
+
+            songs.remove(pos);
+            if(pos < mCurrentPos)
+                mCurrentPos--;
+            if(getSong(1) == null)//quay về đầu danh sách nếu đây là bài hát cuối cùng
+                mCurrentPos = 0;
+            broadcastChangedSongs();
+        }
+        changed();
+    }
     /**
      * Trả về danh sách đã được xáo(dựa trên shufflemode) của timeline.
      * Giá trị trả về sẽ được cached.

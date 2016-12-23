@@ -3,10 +3,13 @@ package chongxuocmanhinh.sound_plusplus;
 import android.annotation.SuppressLint;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -17,7 +20,8 @@ import android.widget.ListView;
  */
 public class ShowQueueFragment extends Fragment
         implements  TimelineCallback,
-                    AdapterView.OnItemClickListener
+                    AdapterView.OnItemClickListener,
+                    MenuItem.OnMenuItemClickListener
 {
     //Sau này phần này sẽ chuyển sang draggable row nếu có thể
     private ListView mListView;
@@ -35,6 +39,7 @@ public class ShowQueueFragment extends Fragment
         mListAdapter = new ShowQueueAdapter(context, R.layout.draggable_row);
         mListView.setAdapter(mListAdapter);
         mListView.setOnItemClickListener(this);
+        mListView.setOnCreateContextMenuListener(this);
         PlaybackService.addTimelineCallback(this);
         return view;
     }
@@ -65,6 +70,9 @@ public class ShowQueueFragment extends Fragment
         mService.jumpToQueuePosition(position);
     }
 
+    public void remove(int which){
+        mService.removeSongPosition(which);
+    }
 
     /**
      * làm mới danh sách nhạc
@@ -126,5 +134,43 @@ public class ShowQueueFragment extends Fragment
     @Override
     public void setState(long uptime, int state) {
 
+    }
+
+    private final static int CTX_MENU_PLAY           = 100;
+    private final static int CTX_MENU_REMOVE         = 104;
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
+        Song song = mService.getSongByQueuePosition(info.position);
+
+        Intent intent = new Intent();
+        intent.putExtra("id", song.id);
+        intent.putExtra("type", MediaUtils.TYPE_SONG);
+        intent.putExtra("position", info.position);
+        menu.setHeaderTitle(song.title);
+        menu.add(0, CTX_MENU_PLAY, 0, R.string.play).setIntent(intent).setOnMenuItemClickListener(this);
+        menu.add(0, CTX_MENU_REMOVE, 0, R.string.remove).setIntent(intent).setOnMenuItemClickListener(this);
+    }
+
+    //================================MenuItem.OnMenuItemClickListener=====================//
+    @Override
+    public boolean onMenuItemClick(MenuItem item) {
+        Intent intent = item.getIntent();
+        int itemId = item.getItemId();
+        int pos = intent.getIntExtra("position", -1);
+
+        Song song = mService.getSongByQueuePosition(pos);
+        switch (item.getItemId()){
+            case CTX_MENU_PLAY:
+                onItemClick(null, null, pos, -1);
+                break;
+            case CTX_MENU_REMOVE:
+                remove(pos);
+                break;
+            default:
+                throw new IllegalArgumentException("Unhandled menu id received!");
+        }
+        return true;
     }
 }
