@@ -580,6 +580,22 @@ public class LibraryPagerAdapter
 
         return tab;
     }
+
+    /**
+     * Gán filter mới cho tất cả adapters.
+     */
+    public void setFilter(String text){
+        if(text.length() == 0)
+            text = null;
+
+        mFilter = text;
+        for(LibraryAdapter adapter : mAdapters){
+            if(adapter != null){
+                adapter.setFilters(text);
+                requestRequery(adapter);
+            }
+        }
+    }
     //==========================Xử lý với các limiter của Adapters==============================//
 
     private static Intent createHeaderIntent(View header) {

@@ -615,13 +615,13 @@ public class LibraryActivity extends SlidingPlaybackActivity
 
     @Override
     public boolean onQueryTextSubmit(String query) {
-        //mPagerAdapter.setFilter(newText);
+        mPagerAdapter.setFilter(query);
         return true;
     }
 
     @Override
     public boolean onQueryTextChange(String newText) {
-        //mPagerAdapter.setFilter(newText);
+       mPagerAdapter.setFilter(newText);
         return true;
     }
 }
