@@ -4,6 +4,8 @@ import android.os.Message;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -157,7 +159,25 @@ public class SlidingPlaybackActivity extends PlaybackActiviy
     //======================================SlidingView.Callback===========================//
     @Override
     public void onSlideFullyExpanded(boolean expanded) {
+        if(mMenu == null)
+            return;
 
+        final int[] slide_visisble = {MENU_HIDE_QUEUE,MENU_CLEAR_QUEUE,MENU_EMPTY_QUEUE};
+        final int[] slide_hidden = {MENU_SHOW_QUEUE};
+
+        for(int id : slide_visisble){
+            MenuItem item = mMenu.findItem(id);
+            if(item != null){
+                item.setVisible(expanded);
+            }
+        }
+
+        for(int id : slide_hidden){
+            MenuItem item = mMenu.findItem(id);
+            if(item != null){
+                item.setVisible(!expanded);
+            }
+        }
     }
 
     //======================================SeekBar.OnSeekBarChangeListener===================//
@@ -183,4 +203,38 @@ public class SlidingPlaybackActivity extends PlaybackActiviy
     }
 
     static final int CTX_MENU_ADD_TO_PLAYLIST = 300;
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+
+        if(mMenu == null)
+            mMenu = menu;
+
+        menu.add(0, MENU_SHOW_QUEUE, 20, R.string.show_queue);
+        menu.add(0, MENU_HIDE_QUEUE, 20, R.string.hide_queue);
+        menu.add(0, MENU_CLEAR_QUEUE, 20, R.string.dequeue_rest);
+        menu.add(0, MENU_EMPTY_QUEUE, 20, R.string.empty_the_queue);
+
+        onSlideFullyExpanded(false);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Log.d("TestOptionMenu","SldingView onOptionsItemSelected");
+        switch (item.getItemId()){
+            case MENU_SHOW_QUEUE:
+                mSlidingView.expandSlide();
+                break;
+            case MENU_HIDE_QUEUE:
+                mSlidingView.hideSlide();
+                break;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+        return true;
+    }
+
+
 }

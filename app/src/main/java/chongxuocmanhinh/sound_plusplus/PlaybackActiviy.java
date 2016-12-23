@@ -11,6 +11,8 @@ import android.os.Message;
 import android.os.Process;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -248,4 +250,36 @@ public abstract class PlaybackActiviy extends Activity
         }
     }
 
+
+
+    static final int MENU_PLAYBACK = 5;
+    static final int MENU_SEARCH = 7;
+    static final int MENU_CLEAR_QUEUE = 11;
+    static final int MENU_SHOW_QUEUE = 13;
+    static final int MENU_HIDE_QUEUE = 14;
+    static final int MENU_EMPTY_QUEUE = 16;
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        //menu.add(0)
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Log.d("TestOptionMenu","Playback ACtivity onOptionsItemSelected");
+        switch (item.getItemId()){
+            case MENU_CLEAR_QUEUE:
+                PlaybackService.get(this).clearQueue();
+                break;
+            case MENU_EMPTY_QUEUE:
+                PlaybackService.get(this).emptyQueue();
+                break;
+            default:
+                return false;
+
+        }
+        return true;
+    }
 }

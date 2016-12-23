@@ -22,6 +22,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.KeyEvent;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,8 +34,7 @@ import Support.isoched.tabs.SoundPlusPlusTabLayout;
 
 public class LibraryActivity extends SlidingPlaybackActivity
                 implements Handler.Callback,
-                            View.OnClickListener
-{
+                            View.OnClickListener, android.widget.SearchView.OnQueryTextListener {
 
     private Looper mLooper;
     private Handler mHandler;
@@ -145,6 +145,8 @@ public class LibraryActivity extends SlidingPlaybackActivity
 
         mBottomBarControls = (BottomBarControls)findViewById(R.id.bottombar_controls);
         mBottomBarControls.setOnClickListener(this);
+        mBottomBarControls.enableOptionsMenu(this);
+        mBottomBarControls.setOnQueryTextListener(this);
 
         if(PermissionRequestActivity.havePermissions(this) == false) {
             PermissionRequestActivity.showWarning(this, getIntent());
@@ -298,6 +300,7 @@ public class LibraryActivity extends SlidingPlaybackActivity
     }
 
     public void expand(Intent intent){
+        mBottomBarControls.showSearch(false);
         int type = intent.getIntExtra(LibraryAdapter.DATA_TYPE,MediaUtils.TYPE_INVALID);
         long id = intent.getLongExtra(LibraryAdapter.DATA_ID,MediaUtils.TYPE_INVALID);
         int tab = mPagerAdapter.setLimiter(mPagerAdapter.mAdapters[type].buildLimiter(id));
@@ -437,6 +440,10 @@ public class LibraryActivity extends SlidingPlaybackActivity
                     break;
                 }
 
+                if (mBottomBarControls.showSearch(false)) {
+                    break;
+                }
+
                 if(limiter != null){
                     int pos = -1;
                     switch (limiter.type){
@@ -565,6 +572,34 @@ public class LibraryActivity extends SlidingPlaybackActivity
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.add(0,MENU_PLAYBACK,0,R.string.playback_view);
+        menu.add(0, MENU_SEARCH, 0, R.string.search).setIcon(R.drawable.ic_menu_search).setVisible(false);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Log.d("TestOptionMenu","Librabry ACtivity onOptionsItemSelected");
+        switch (item.getItemId()){
+            case MENU_SEARCH:
+                mBottomBarControls.showSearch(true);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+
+    }
+
+
+
+    @Override
     protected void onStateChange(int state, int toggled) {
         super.onStateChange(state, toggled);
 
@@ -576,5 +611,17 @@ public class LibraryActivity extends SlidingPlaybackActivity
     protected void onSongChange(Song song) {
         super.onSongChange(song);
         mBottomBarControls.setSong(song);
+    }
+
+    @Override
+    public boolean onQueryTextSubmit(String query) {
+        //mPagerAdapter.setFilter(newText);
+        return true;
+    }
+
+    @Override
+    public boolean onQueryTextChange(String newText) {
+        //mPagerAdapter.setFilter(newText);
+        return true;
     }
 }

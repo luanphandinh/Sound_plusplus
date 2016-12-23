@@ -677,9 +677,23 @@ public class PlaybackService extends Service
         return mSongTimeLine.getLength();
     }
 
-//    public int loadState(){
-//
-//    }
+    /**
+     * Xóa hàng đợi các bài hát đằng sau bài hát hiện tại.
+     */
+    public void clearQueue()
+    {
+        mSongTimeLine.clearQueue();
+    }
+
+    /**
+     * Xóa toàn bộ danh sách nhạc.
+     */
+    public void emptyQueue()
+    {
+        pause();
+        setFlag(FLAG_EMPTY_QUEUE);
+        mSongTimeLine.emptyQueue();
+    }
 
 
     /**

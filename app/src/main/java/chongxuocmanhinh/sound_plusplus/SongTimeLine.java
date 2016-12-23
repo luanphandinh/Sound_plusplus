@@ -490,6 +490,31 @@ public class SongTimeLine {
     }
 
     /**
+     * Clear hàng đợi đằng sau nào hát hiện tại
+     */
+    public void clearQueue(){
+        synchronized (this){
+            saveActiveSongs();
+            if(mCurrentPos + 1 < mSongs.size())
+                mSongs.subList(mCurrentPos + 1,mSongs.size()).clear();
+            broadcastChangedSongs();
+        }
+        changed();
+    }
+
+    /**
+     * Xóa hết danh sách nhạc
+     */
+    public void emptyQueue(){
+        synchronized (this){
+            saveActiveSongs();
+            mSongs.clear();
+            mCurrentPos = 0;
+            broadcastChangedSongs();
+        }
+        changed();
+    }
+    /**
      * Trả về danh sách đã được xáo(dựa trên shufflemode) của timeline.
      * Giá trị trả về sẽ được cached.
      * @param cached
