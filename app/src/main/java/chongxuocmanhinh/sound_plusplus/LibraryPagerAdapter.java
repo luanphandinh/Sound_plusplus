@@ -574,6 +574,31 @@ public class LibraryPagerAdapter
                 if (tab == -1)
                     tab = mSongsPosition;
                 break;
+            case MediaUtils.TYPE_GENRE:
+                if(mArtistAdapter == null){
+                    mPendingArtistLimiter = limiter;
+                }else{
+                    mArtistAdapter.setLimiter(limiter);
+                    requestRequery(mArtistAdapter);
+                }
+                if (mAlbumAdapter == null) {
+                    mPendingAlbumLimiter = limiter;
+                } else {
+                    mAlbumAdapter.setLimiter(limiter);
+                    requestRequery(mAlbumAdapter);
+                }
+                if (mSongAdapter == null) {
+                    mPendingSongLimiter = limiter;
+                } else {
+                    mSongAdapter.setLimiter(limiter);
+                    requestRequery(mSongAdapter);
+                }
+                tab = mArtistsPosition;
+                if (tab == -1)
+                    tab = mAlbumsPosition;
+                if (tab == -1)
+                    tab = mSongsPosition;
+                break;
             default:
                 throw new IllegalArgumentException("Unsupported limiter type: " + limiter.type);
         }
