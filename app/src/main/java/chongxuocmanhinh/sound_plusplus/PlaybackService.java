@@ -3,6 +3,7 @@ package chongxuocmanhinh.sound_plusplus;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Handler;
@@ -11,6 +12,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
@@ -146,6 +148,11 @@ public class PlaybackService extends Service
      * Dùng để sử dụng ở mọi nơi,Single-ton.
      */
     public static PlaybackService sInstance;
+
+    /**
+     * SharedPreferences được sử dụng trên toàn app.
+     */
+    private static SharedPreferences sSettings;
 
     private boolean mMediaPlayerInitialized;
     @Override
@@ -764,5 +771,19 @@ public class PlaybackService extends Service
      */
     public void removeSongPosition(int which) {
         mSongTimeLine.removeSongPosition(which);
+    }
+
+    /**
+     * Trả về đối tượng SharedPreferences chứa settings của playbackservice,
+     * tạo mới nếu cần thiết.
+     * @param context
+     * @return
+     */
+    public static SharedPreferences getSettings(Context context){
+        if(sSettings == null){
+            sSettings = PreferenceManager.getDefaultSharedPreferences(context);
+        }
+
+        return sSettings;
     }
 }

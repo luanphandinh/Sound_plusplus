@@ -1,6 +1,7 @@
 package chongxuocmanhinh.sound_plusplus;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.os.Handler;
@@ -310,7 +311,8 @@ public class LibraryPagerAdapter
                 view.addHeaderView(header);
             }
             view.setAdapter(adapter);
-            //cần load sortOrder và setFilter tại chỗ này
+            loadSortOrder((MediaAdapter)adapter);
+            //cần setFilter tại chỗ này
             //adapter.commitQuery(adapter.query());
             mAdapters[type] = adapter;
             mLists[type] = view;
@@ -392,6 +394,13 @@ public class LibraryPagerAdapter
             case MSG_REQUEST_REQUERY:
                 requestRequery((LibraryAdapter)msg.obj);
                 break;
+            case MSG_SAVE_SORT: {
+                MediaAdapter adapter = (MediaAdapter)msg.obj;
+                SharedPreferences.Editor editor = PlaybackService.getSettings(mActivity).edit();
+                editor.putInt(String.format("sort_%d_%d", adapter.getMediaTypes(), adapter.getLimiterType()), adapter.getSortMode());
+                editor.apply();
+                break;
+            }
             default:
                 return false;
 
@@ -519,6 +528,7 @@ public class LibraryPagerAdapter
             mPendingArtistLimiter = null;
         }else{
             mArtistAdapter.setLimiter(null);
+            loadSortOrder(mArtistAdapter);
             requestRequery(mArtistAdapter);
         }
 
@@ -526,6 +536,7 @@ public class LibraryPagerAdapter
             mPendingAlbumLimiter = null;
         }else{
             mAlbumAdapter.setLimiter(null);
+            loadSortOrder(mAlbumAdapter);
             requestRequery(mAlbumAdapter);
         }
 
@@ -533,6 +544,7 @@ public class LibraryPagerAdapter
             mPendingSongLimiter = null;
         }else{
             mSongAdapter.setLimiter(null);
+            loadSortOrder(mSongAdapter);
             requestRequery(mSongAdapter);
         }
     }
@@ -553,6 +565,7 @@ public class LibraryPagerAdapter
                     mPendingSongLimiter = limiter;
                 }else{
                     mSongAdapter.setLimiter(limiter);
+                    loadSortOrder(mSongAdapter);
                     requestRequery(mSongAdapter);
                 }
                 tab = mSongsPosition;
@@ -562,12 +575,14 @@ public class LibraryPagerAdapter
                     mPendingAlbumLimiter = limiter;
                 } else {
                     mAlbumAdapter.setLimiter(limiter);
+                    loadSortOrder(mAlbumAdapter);
                     requestRequery(mAlbumAdapter);
                 }
                 if (mSongAdapter == null) {
                     mPendingSongLimiter = limiter;
                 } else {
                     mSongAdapter.setLimiter(limiter);
+                    loadSortOrder(mSongAdapter);
                     requestRequery(mSongAdapter);
                 }
                 tab = mAlbumsPosition;
@@ -579,18 +594,21 @@ public class LibraryPagerAdapter
                     mPendingArtistLimiter = limiter;
                 }else{
                     mArtistAdapter.setLimiter(limiter);
+                    loadSortOrder(mArtistAdapter);
                     requestRequery(mArtistAdapter);
                 }
                 if (mAlbumAdapter == null) {
                     mPendingAlbumLimiter = limiter;
                 } else {
                     mAlbumAdapter.setLimiter(limiter);
+                    loadSortOrder(mAlbumAdapter);
                     requestRequery(mAlbumAdapter);
                 }
                 if (mSongAdapter == null) {
                     mPendingSongLimiter = limiter;
                 } else {
                     mSongAdapter.setLimiter(limiter);
+                    loadSortOrder(mSongAdapter);
                     requestRequery(mSongAdapter);
                 }
                 tab = mArtistsPosition;
@@ -638,6 +656,22 @@ public class LibraryPagerAdapter
         adapter.setSortMode(mode);
         requestRequery(adapter);
 
+        Handler handler = mWorkerHandler;
+        handler.sendMessage(handler.obtainMessage(MSG_SAVE_SORT, adapter));
+    }
+
+    /**
+     * Gán lại sortmode đã được lưu cho adapter được truyền vào.adapter sẽ được re-queried sau
+     * khi gọi hàm này
+     *
+     * @param adapter The adapter to load for.
+     */
+    public void loadSortOrder(MediaAdapter adapter)
+    {
+        String key = String.format("sort_%d_%d", adapter.getMediaTypes(), adapter.getLimiterType());
+        int def = adapter.getDefaultSortMode();
+        int sort = PlaybackService.getSettings(mActivity).getInt(key, def);
+        adapter.setSortMode(sort);
     }
     //==========================Xử lý với các limiter của Adapters==============================//
 

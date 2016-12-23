@@ -529,6 +529,20 @@ public class MediaAdapter extends BaseAdapter
         return mType;
     }
 
+    /**
+     * Trả về loại limiter của apdater hiện tại
+     *
+     * @return One of MediaUtils.TYPE_, or MediaUtils.TYPE_INVALID if there is
+     * no limiter set.
+     */
+    public int getLimiterType()
+    {
+        Limiter limiter = mLimiter;
+        if (limiter != null)
+            return limiter.type;
+        return MediaUtils.TYPE_INVALID;
+    }
+
     @Override
     public void setLimiter(Limiter limiter) {
         mLimiter = limiter;
@@ -568,6 +582,18 @@ public class MediaAdapter extends BaseAdapter
     {
         return mSortMode;
     }
+
+    /**
+     * Trả về sort mode sẽ được dùng nếu ko có sortmode nào được lưu từ trước
+     */
+    public int getDefaultSortMode()
+    {
+        int type = mType;
+        if (type == MediaUtils.TYPE_ALBUM || type == MediaUtils.TYPE_SONG)
+            return 1; // aritst,album,track
+        return 0;
+    }
+
 
     @Override
     public Limiter buildLimiter(long id) {

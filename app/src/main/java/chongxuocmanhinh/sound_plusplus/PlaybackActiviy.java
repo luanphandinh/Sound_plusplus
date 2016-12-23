@@ -2,6 +2,7 @@ package chongxuocmanhinh.sound_plusplus;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -82,6 +83,8 @@ public abstract class PlaybackActiviy extends Activity
             Log.d("TestPlay","StartService");
             startService(new Intent(this,PlaybackService.class));
         }
+
+        SharedPreferences prefs = PlaybackService.getSettings(this);
     }
 
     /**
