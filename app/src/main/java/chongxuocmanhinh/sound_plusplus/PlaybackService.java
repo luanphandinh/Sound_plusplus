@@ -17,6 +17,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
@@ -38,18 +39,23 @@ import java.util.ArrayList;
  * https://developer.android.com/reference/android/media/MediaPlayer.html
  */
 public class PlaybackService extends Service
-        implements Handler.Callback,
-                SongTimeLine.Callback,
-                MediaPlayer.OnCompletionListener,/** Hai cái này cần phải implement*/
-                MediaPlayer.OnErrorListener
-               // ,SharedPreferences.OnSharedPreferenceChangeListener
+        implements Handler.Callback
+                , SongTimeLine.Callback
+                , MediaPlayer.OnCompletionListener/** Hai cái này cần phải implement*/
+                , MediaPlayer.OnErrorListener
+                /**
+                 * Tham khảo thêm về cách kiểm soát AudioFucus
+                 * https://developer.android.com/guide/topics/media-apps/volume-and-earphones.html
+                 */
+                , AudioManager.OnAudioFocusChangeListener
+               /// ,SharedPreferences.OnSharedPreferenceChangeListener
 {
     /**
-     *Tên của file lưu các trạng thái của service
+     * Tên của file lưu các trạng thái của service
      */
     private static final String STATE_FILE = "state";
     /**
-     *  Header cho state file để chỉ rõ file có đúng định dạng hay không
+     * Header cho state file để chỉ rõ file có đúng định dạng hay không
      */
     private static final long STATE_FILE_MAGIC = 0x1533574DC74B6ECL;
     /**
@@ -69,6 +75,10 @@ public class PlaybackService extends Service
 
     private int mPendingSeek;
     private static final int NOTIFICATION_ID = 2;
+    /**
+     * A remote control client implementation
+     */
+    private RemoteControl.Client mRemoteControlClient;
     /**
      * Id của bài cho mPendingSeek.bằng -1 thì bài hát ko đúng
      * thì mPendingSeek sẽ bằng 0
@@ -94,9 +104,9 @@ public class PlaybackService extends Service
     /**
      * Object dùng để lock các trạng thái khi đang synchronized
      */
-    final  Object[] mStateLock = new Object[0];
+    final Object[] mStateLock = new Object[0];
     /**
-     *Nếu được set,thì sẽ play nhạc.
+     * Nếu được set,thì sẽ play nhạc.
      * 1
      */
     public static final int FLAG_PLAYING = 0x1;
@@ -134,15 +144,15 @@ public class PlaybackService extends Service
     /**
      * The PlaybackService state, indicating if the service is playing,
      * repeating, etc.
-     *
+     * <p/>
      * The format of this is 0b00000000_00000000_000000gff_feeedcba,
      * where each bit is:
-     *     a:   {@link PlaybackService#FLAG_PLAYING}
-     *     b:   {@link PlaybackService#FLAG_NO_MEDIA}
-     *     c:   {@link PlaybackService#FLAG_ERROR}
-     *     d:   {@link PlaybackService#FLAG_EMPTY_QUEUE}
-     *     eee: {@link PlaybackService#MASK_FINISH}
-     *     fff: {@link PlaybackService#MASK_SHUFFLE}
+     * a:   {@link PlaybackService#FLAG_PLAYING}
+     * b:   {@link PlaybackService#FLAG_NO_MEDIA}
+     * c:   {@link PlaybackService#FLAG_ERROR}
+     * d:   {@link PlaybackService#FLAG_EMPTY_QUEUE}
+     * eee: {@link PlaybackService#MASK_FINISH}
+     * fff: {@link PlaybackService#MASK_SHUFFLE}
      */
     int mState;
 
@@ -169,25 +179,41 @@ public class PlaybackService extends Service
     private boolean mMediaPlayerInitialized;
 
     /**
-     * Hành động khi startService(hàm onStartCommad được gọi): toggle playback on/off.
+     * Hành động khi startService(hàm onStartCommand được gọi): toggle playback on/off.
      */
     public static final String ACTION_TOGGLE_PLAYBACK = "cchongxuocmanhinh.sound_plusplus.action.TOGGLE_PLAYBACK";
     /**
-     * Hành động khi startService(hàm onStartCommad được gọi): start playback nếu paused.
+     * Hành động khi startService(hàm onStartCommand được gọi): start playback nếu paused.
      */
     public static final String ACTION_PLAY = "chongxuocmanhinh.sound_plusplus.action.PLAY";
     /**
-     * Hành động khi startService(hàm onStartCommad được gọi): pause playback nếu playing.
+     * Hành động khi startService(hàm onStartCommand được gọi): pause playback nếu playing.
      */
     public static final String ACTION_PAUSE = "chongxuocmanhinh.sound_plusplus.action.PAUSE";
 
     /**
-     * Hành động khi startService(hàm onStartCommad được gọi): chuyển sang bài tiếp theo.
+     * Hành động khi startService(hàm onStartCommand được gọi): chuyển sang bài tiếp theo.
      */
     public static final String ACTION_NEXT_SONG = "chongxuocmanhinh.sound_plusplus.action.NEXT_SONG";
     /**
-     * Hành động khi startService(hàm onStartCommad được gọi): toggle playback on/off.
-     *
+     * Hành động khi startService(hàm onStartCommand được gọi): advance to the next song.
+     * <p/>
+     * Giống ACTION_NEXT_SONG, nhưng tự động play bài hát khi chuyển nếu đang pause
+     */
+    public static final String ACTION_NEXT_SONG_AUTOPLAY = "ch.teamuit.android.soundplusplus.action.NEXT_SONG_AUTOPLAY";
+    /**
+     * Hành động khi startService(hàm onStartCommand được gọi): chuyển về bài hát trước đó.
+     */
+    public static final String ACTION_PREVIOUS_SONG = "ch.teamuit.android.soundplusplus.action.PREVIOUS_SONG";
+    /**
+     * Hành động khi startService(hàm onStartCommand được gọi): chuyển về bài hát trước đó.
+     * <p/>
+     * Giống ACTION_PREVIOUS_SONG, nhưng tự động play bài hát khi chuyển nếu đang pause.
+     */
+    public static final String ACTION_PREVIOUS_SONG_AUTOPLAY = "ch.teamuit.android.soundplusplus.action.PREVIOUS_SONG_AUTOPLAY";
+    /**
+     * Hành động khi startService(hàm onStartCommand được gọi): toggle playback on/off.
+     * <p/>
      * hoạt động giống ACTION_TOGGLE_PLAYBACK,nhưng ko bắt buộc ẩn thông báo như ACTION_TOGGLE_PLAYBACK
      */
     public static final String ACTION_TOGGLE_PLAYBACK_NOTIFICATION = "chongxuocmanhinh.sound_plusplus.action.TOGGLE_PLAYBACK_NOTIFICATION";
@@ -204,11 +230,17 @@ public class PlaybackService extends Service
      * Chế độ của notification,1 trong 3 chế độ ở trên
      */
     private int mNotificationMode;
+    /**
+     *
+     */
+    private boolean mIgnoreAudioFocusLoss;
+    private boolean mTransientAudioLoss;
+
     @Override
     public void onCreate() {
         HandlerThread thread = new HandlerThread("PlaybackService", Process.THREAD_PRIORITY_DEFAULT);
         thread.start();
-        Log.d("PlayTest","Created Service");
+        Log.d("PlayTest", "Created Service");
         mSongTimeLine = new SongTimeLine(this);
         mSongTimeLine.setCallback(this);
 
@@ -218,12 +250,20 @@ public class PlaybackService extends Service
         mPreparedMediaPlayer = getNewMediaPLayer();
         //Ta chỉ sử dụng duy nhất một audioseissionId
         mPreparedMediaPlayer.setAudioSessionId(mMediaPlayer.getAudioSessionId());
-        mNotificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-        mAudioManager = (AudioManager)getSystemService(AUDIO_SERVICE);
+        mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
 
         SharedPreferences settings = getSettings(this);
         //settings.registerOnSharedPreferenceChangeListener(this);
         mNotificationMode = Integer.parseInt(settings.getString(PrefKeys.NOTIFICATION_MODE, PrefDefaults.NOTIFICATION_MODE));
+
+        mIgnoreAudioFocusLoss = settings.getBoolean(PrefKeys.IGNORE_AUDIOFOCUS_LOSS, PrefDefaults.IGNORE_AUDIOFOCUS_LOSS);
+
+        ///================//
+        mRemoteControlClient = new RemoteControl().getClient(this);
+        mRemoteControlClient.initializeRemote();
+
+
         mLooper = thread.getLooper();
         mHandler = new Handler(mLooper, this);
         updateState(state);
@@ -235,11 +275,37 @@ public class PlaybackService extends Service
         }
     }
 
+
+    @Override
+    public void onDestroy() {
+
+        sInstance = null;
+
+        mLooper.quit();
+
+        // clear the notification
+        stopForeground(true);
+
+        if (mMediaPlayer != null) {
+            mMediaPlayer.release();
+            mMediaPlayer = null;
+        }
+
+        if (mPreparedMediaPlayer != null) {
+            mPreparedMediaPlayer.release();
+            mPreparedMediaPlayer = null;
+        }
+
+        if (mRemoteControlClient != null)
+            mRemoteControlClient.unregisterRemote();
+
+        super.onDestroy();
+    }
+
     /**
-     *Trả về thằng  PlaybackService instance tạo mới nếu chưa có.
+     * Trả về thằng  PlaybackService instance tạo mới nếu chưa có.
      */
-    public static PlaybackService get(Context context)
-    {
+    public static PlaybackService get(Context context) {
         if (sInstance == null) {
             context.startService(new Intent(context, PlaybackService.class));
 
@@ -252,23 +318,21 @@ public class PlaybackService extends Service
                 }
             }
         }
-        Log.d("TestPlay","Return Service");
+        Log.d("TestPlay", "Return Service");
         return sInstance;
     }
 
 
-    public static void addTimelineCallback(TimelineCallback consumer)
-    {
+    public static void addTimelineCallback(TimelineCallback consumer) {
         sCallbacks.add(consumer);
     }
 
 
-    public static void removeTimelineCallback(TimelineCallback consumer)
-    {
+    public static void removeTimelineCallback(TimelineCallback consumer) {
         sCallbacks.remove(consumer);
     }
 
-    private SoundPlusPLusMediaPlayer getNewMediaPLayer(){
+    private SoundPlusPLusMediaPlayer getNewMediaPLayer() {
         SoundPlusPLusMediaPlayer mp = new SoundPlusPLusMediaPlayer(this);
         mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mp.setOnCompletionListener(this);
@@ -276,27 +340,26 @@ public class PlaybackService extends Service
         return mp;
     }
 
-    private void prepareMediaPlayer(SoundPlusPLusMediaPlayer mp,String path) throws IOException {
+    private void prepareMediaPlayer(SoundPlusPLusMediaPlayer mp, String path) throws IOException {
         mp.setDataSource(path);
         mp.prepare();
     }
 
-    private void processSong(Song song){
+    private void processSong(Song song) {
 
         try {
 
             mMediaPlayerInitialized = false;
             mMediaPlayer.reset();
-            Log.d("Test","Song path : " + song.path);
-            if(mPreparedMediaPlayer.isPlaying()) {
+            Log.d("Test", "Song path : " + song.path);
+            if (mPreparedMediaPlayer.isPlaying()) {
                 // The prepared media player is playing as the previous song
                 // reched its end 'naturally' (-> gapless)
                 // We can now swap mPreparedMediaPlayer and mMediaPlayer
                 SoundPlusPLusMediaPlayer tmpPlayer = mMediaPlayer;
                 mMediaPlayer = mPreparedMediaPlayer;
                 mPreparedMediaPlayer = tmpPlayer; // this was mMediaPlayer and is in reset() state
-            }
-            else {
+            } else {
                 prepareMediaPlayer(mMediaPlayer, song.path);
             }
 
@@ -312,14 +375,14 @@ public class PlaybackService extends Service
 
 
         } catch (IOException e) {
-            Log.d("Test","Error!");
+            Log.d("Test", "Error!");
 
         }
         updateNotification();
     }
 
-    public void addSongs(QueryTask query){
-        Log.d("Testtt","Service Add song");
+    public void addSongs(QueryTask query) {
+        Log.d("Testtt", "Service Add song");
         mHandler.sendMessage(mHandler.obtainMessage(MSG_QUERY, query));
     }
 
@@ -328,10 +391,9 @@ public class PlaybackService extends Service
      *
      * @return The new state after this is called.
      */
-    public int playPause()
-    {
+    public int playPause() {
         mForceNotificationVisible = false;
-        Log.d("TestPlayPause","Enter service playpause()");
+        Log.d("TestPlayPause", "Enter service playpause()");
         synchronized (mStateLock) {
             if ((mState & FLAG_PLAYING) != 0)
                 return pause();
@@ -342,12 +404,13 @@ public class PlaybackService extends Service
 
     /**
      * Bắt đầu chơi nhạc nếu đang pause
+     *
      * @return
      */
-    public int play(){
-        Log.d("TestPlayPause","Enter service play()");
-        synchronized (mStateLock){
-            if((mState & FLAG_EMPTY_QUEUE) != 0){
+    public int play() {
+        Log.d("TestPlayPause", "Enter service play()");
+        synchronized (mStateLock) {
+            if ((mState & FLAG_EMPTY_QUEUE) != 0) {
                 setCurrentSong(0);
             }
 
@@ -357,7 +420,7 @@ public class PlaybackService extends Service
     }
 
     public int pause() {
-        Log.d("TestPlayPause","Enter service pause()");
+        Log.d("TestPlayPause", "Enter service pause()");
         synchronized (mStateLock) {
             int state = updateState(mState & ~FLAG_PLAYING);
             return state;
@@ -365,13 +428,12 @@ public class PlaybackService extends Service
     }
 
     /**
-     *
      * @return
      */
-    public int cycleFinishAction(){
-        synchronized (mStateLock){
+    public int cycleFinishAction() {
+        synchronized (mStateLock) {
             int mode = finishAction(mState) + 1;
-            if(mode > SongTimeLine.FINISH_RANDOM)
+            if (mode > SongTimeLine.FINISH_RANDOM)
                 mode = SongTimeLine.FINISH_STOP;
             return setFinishAction(mode);
         }
@@ -382,8 +444,7 @@ public class PlaybackService extends Service
      *
      * @return The new state after this is called.
      */
-    public int cycleShuffle()
-    {
+    public int cycleShuffle() {
         synchronized (mStateLock) {
             int mode = shuffleMode(mState) + 1;
             if (mode > SongTimeLine.SHUFFLE_ALBUMS)
@@ -395,17 +456,18 @@ public class PlaybackService extends Service
 
     /**
      * Thay đổi hành động sau khi kết thúc bài hát (lặp lại,random....)
+     *
      * @param action
      * @return
      */
-    public int setFinishAction(int action){
-        synchronized (mStateLock){
+    public int setFinishAction(int action) {
+        synchronized (mStateLock) {
             return updateState(mState & ~MASK_FINISH | action << SHIFT_FINISH);
         }
     }
 
 
-    public int setShuffleMode(int mode){
+    public int setShuffleMode(int mode) {
         synchronized (mStateLock) {
             return updateState(mState & ~MASK_SHUFFLE | mode << SHIFT_SHUFFLE);
         }
@@ -413,11 +475,12 @@ public class PlaybackService extends Service
 
     /**
      * Thay đổi state của service
+     *
      * @param state
      * @return
      */
-    private int updateState(int state){
-        if ((state & (FLAG_NO_MEDIA|FLAG_ERROR|FLAG_EMPTY_QUEUE)) != 0)
+    private int updateState(int state) {
+        if ((state & (FLAG_NO_MEDIA | FLAG_ERROR | FLAG_EMPTY_QUEUE)) != 0)
             state &= ~FLAG_PLAYING;
 
         int oldState = mState;
@@ -432,21 +495,26 @@ public class PlaybackService extends Service
     }
 
 
-    private void processNewState(int oldState,int state){
-        Log.d("TestPlayPause","processNewState()");
+    private void processNewState(int oldState, int state) {
+        Log.d("TestPlayPause", "processNewState()");
         int toggled = oldState ^ state;
-        if ( ((toggled & FLAG_PLAYING) != 0) && mCurrentSong != null) {
+        if (((toggled & FLAG_PLAYING) != 0) && mCurrentSong != null) {
             if ((state & FLAG_PLAYING) != 0) {//Nếu đang pause và state mới là play
-                Log.d("TestPlayPause","mMediaPlayer.start()");
+                Log.d("TestPlayPause", "mMediaPlayer.start()");
                 if (mMediaPlayerInitialized)
                     mMediaPlayer.start();
 
                 if (mNotificationMode != NEVER)
                     startForeground(NOTIFICATION_ID, createNotification(mCurrentSong, mState, mNotificationMode));
 
-            }
-            else{//Nếu state mới là pause
-                Log.d("TestPlayPause"," mMediaPlayer.pause();");
+                //Dùng để getfocus,sẽ không thể hiển thị removecontrol trên lockscreen nếu ko request hoặc request failed
+                final int result = mAudioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+                if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                    unsetFlag(FLAG_PLAYING);
+                }
+
+            } else {//Nếu state mới là pause
+                Log.d("TestPlayPause", " mMediaPlayer.pause();");
                 if (mMediaPlayerInitialized)
                     mMediaPlayer.pause();
 
@@ -477,7 +545,7 @@ public class PlaybackService extends Service
     //=========================Handler.Callback=====================================//
     /**
      * Chạy query và add các kết quả vào songtimeline.
-     *
+     * <p/>
      * obj là  QueryTask. arg1 là chế độ add (add mode) (one of SongTimeLine.MODE_*)
      */
     private static final int MSG_QUERY = 2;
@@ -485,24 +553,25 @@ public class PlaybackService extends Service
     private static final int MSG_SAVE_STATE = 12;
     private static final int MSG_PROCESS_SONG = 13;
     private static final int MSG_PROCESS_STATE = 14;
+
     @Override
     public boolean handleMessage(Message msg) {
-        switch (msg.what){
+        switch (msg.what) {
             case MSG_QUERY:
-                runQuery((QueryTask)msg.obj);
+                runQuery((QueryTask) msg.obj);
                 break;
             case MSG_PROCESS_SONG:
-                processSong((Song)msg.obj);
+                processSong((Song) msg.obj);
                 break;
             case MSG_BROADCAST_CHANGE:
-                TimestampedObject tso = (TimestampedObject)msg.obj;
-                broadcastChange(msg.arg1, (Song)tso.object, tso.uptime);
+                TimestampedObject tso = (TimestampedObject) msg.obj;
+                broadcastChange(msg.arg1, (Song) tso.object, tso.uptime);
                 break;
             case MSG_SAVE_STATE:
                 saveState(0);
                 break;
             case MSG_PROCESS_STATE:
-                processNewState(msg.arg1,msg.arg2);
+                processNewState(msg.arg1, msg.arg2);
                 break;
             default:
                 return false;
@@ -511,12 +580,11 @@ public class PlaybackService extends Service
     }
 
     /**
-     *
      * @param query
      */
-    public void runQuery(QueryTask query){
-        Log.d("Testtt","Service run query");
-        int count = mSongTimeLine.addSongs(this,query);
+    public void runQuery(QueryTask query) {
+        Log.d("Testtt", "Service run query");
+        int count = mSongTimeLine.addSongs(this, query);
         int text;
         switch (query.mode) {
             case SongTimeLine.MODE_PLAY:
@@ -548,6 +616,7 @@ public class PlaybackService extends Service
             setCurrentSong(+1);
         }
     }
+
     //=======================MediaPlayer.OnErrorListener=========================//
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
@@ -580,9 +649,10 @@ public class PlaybackService extends Service
 
     /**
      * Di chuyển tơi bài hát tiếp theo hay trước đó trong hàng đợi
+     *
      * @return
      */
-    public Song shiftCurrentSong(int delta){
+    public Song shiftCurrentSong(int delta) {
         Song song = setCurrentSong(delta);
         return song;
     }
@@ -594,7 +664,7 @@ public class PlaybackService extends Service
      *              để khởi tạo bài hát với media player ,notification.....
      * @return The new current song
      */
-    public Song setCurrentSong(int delta){
+    public Song setCurrentSong(int delta) {
         if (mMediaPlayer == null)
             return null;
 
@@ -604,11 +674,11 @@ public class PlaybackService extends Service
         Song song = mSongTimeLine.shiftCurrentSong(delta);
         mCurrentSong = song;
 
-        if(song == null){
+        if (song == null) {
             return null;
-        }else if ((mState & (FLAG_NO_MEDIA|FLAG_EMPTY_QUEUE)) != 0){
+        } else if ((mState & (FLAG_NO_MEDIA | FLAG_EMPTY_QUEUE)) != 0) {
             synchronized (mStateLock) {
-                updateState(mState & ~(FLAG_EMPTY_QUEUE|FLAG_NO_MEDIA));
+                updateState(mState & ~(FLAG_EMPTY_QUEUE | FLAG_NO_MEDIA));
             }
         }
 
@@ -622,8 +692,8 @@ public class PlaybackService extends Service
         return song;
     }
 
-    public Song getSong(int delta){
-        if(mSongTimeLine == null)
+    public Song getSong(int delta) {
+        if (mSongTimeLine == null)
             return null;
 //        if (delta == 0)
 //            return mCurrentSong;
@@ -635,9 +705,9 @@ public class PlaybackService extends Service
      *
      * @return
      */
-    public Song rewindCurrentSong(){
+    public Song rewindCurrentSong() {
         int delta = SongTimeLine.SHIFT_PREVIOUS_SONG;
-        if(isPlaying() && getPosition() > REWIND_AFTER_PLAYED_MS && getDuration() > REWIND_AFTER_PLAYED_MS*2){
+        if (isPlaying() && getPosition() > REWIND_AFTER_PLAYED_MS && getDuration() > REWIND_AFTER_PLAYED_MS * 2) {
             delta = SongTimeLine.SHIFT_KEEP_SONG;
         }
 
@@ -648,15 +718,14 @@ public class PlaybackService extends Service
      * Trả về trạng thái playing của bài hát hiện tại
      */
     public boolean isPlaying() {
-        Log.d("Testtt",((mState & FLAG_PLAYING) != 0) ? "":"isPlaying false");
+        Log.d("Testtt", ((mState & FLAG_PLAYING) != 0) ? "" : "isPlaying false");
         return (mState & FLAG_PLAYING) != 0;
     }
 
     /**
      * Trả về thời gian của bài hát dưới dạng miliseconds
      */
-    public int getDuration()
-    {
+    public int getDuration() {
         if (!mMediaPlayerInitialized)
             return 0;
         return mMediaPlayer.getDuration();
@@ -665,10 +734,9 @@ public class PlaybackService extends Service
     /**
      * Returns the current position in current song in milliseconds.
      */
-    public int getPosition()
-    {
+    public int getPosition() {
         if (!mMediaPlayerInitialized) {
-            Log.d("TestPlay","mMediaPlayerInitialized = false");
+            Log.d("TestPlay", "mMediaPlayerInitialized = false");
             return 0;
         }
         return mMediaPlayer.getCurrentPosition();
@@ -680,25 +748,22 @@ public class PlaybackService extends Service
      *
      * @param progress Proportion of song completed (where 1000 is the end of the song)
      */
-    public void seekToProgress(int progress)
-    {
+    public void seekToProgress(int progress) {
         if (!mMediaPlayerInitialized)
             return;
-        long position = (long)mMediaPlayer.getDuration() * progress / 1000;
-        mMediaPlayer.seekTo((int)position);
+        long position = (long) mMediaPlayer.getDuration() * progress / 1000;
+        mMediaPlayer.seekTo((int) position);
     }
 
 
-
-    public static boolean hasInstance(){
+    public static boolean hasInstance() {
         return sInstance != null;
     }
 
     /**
      * Set a state flag.
      */
-    public void setFlag(int flag)
-    {
+    public void setFlag(int flag) {
         synchronized (mStateLock) {
             updateState(mState | flag);
         }
@@ -707,20 +772,18 @@ public class PlaybackService extends Service
     /**
      * Unset a state flag.
      */
-    public void unsetFlag(int flag)
-    {
+    public void unsetFlag(int flag) {
         synchronized (mStateLock) {
             updateState(mState & ~flag);
         }
     }
 
     /**
-     *
      * @param state
      * @param song
      * @param uptime
      */
-    private void broadcastChange(int state, Song song, long uptime){
+    private void broadcastChange(int state, Song song, long uptime) {
 
         if (state != -1) {
             ArrayList<TimelineCallback> list = sCallbacks;
@@ -733,10 +796,13 @@ public class PlaybackService extends Service
             for (int i = list.size(); --i != -1; )
                 list.get(i).setSong(uptime, song);
         }
+
+        mRemoteControlClient.updateRemote(mCurrentSong, mState, mForceNotificationVisible);
     }
 
     /**
      * Trả về bài hát tại vị trí trong queue.
+     *
      * @param id
      * @return
      */
@@ -746,34 +812,33 @@ public class PlaybackService extends Service
 
     /**
      * Nhảy tới vị trí được đưa vào
+     *
      * @param id
      */
-    public void jumpToQueuePosition(int id){
+    public void jumpToQueuePosition(int id) {
         mSongTimeLine.setCurrentQueuePosition(id);
         play();
     }
 
-    public int getTimelinePosition(){
-        return mSongTimeLine.getPosition() ;
+    public int getTimelinePosition() {
+        return mSongTimeLine.getPosition();
     }
 
-    public int getTimeLineLength(){
+    public int getTimeLineLength() {
         return mSongTimeLine.getLength();
     }
 
     /**
      * Xóa hàng đợi các bài hát đằng sau bài hát hiện tại.
      */
-    public void clearQueue()
-    {
+    public void clearQueue() {
         mSongTimeLine.clearQueue();
     }
 
     /**
      * Xóa toàn bộ danh sách nhạc.
      */
-    public void emptyQueue()
-    {
+    public void emptyQueue() {
         pause();
         setFlag(FLAG_EMPTY_QUEUE);
         mSongTimeLine.emptyQueue();
@@ -788,7 +853,7 @@ public class PlaybackService extends Service
      * @param state
      * @return Trạng thái sau khi kết thúc play 1 bài hát.1 trong SongTimeline.FINISH_*.
      */
-    public static int finishAction(int state){
+    public static int finishAction(int state) {
         return (state & MASK_FINISH) >> SHIFT_FINISH;
     }
 
@@ -800,11 +865,11 @@ public class PlaybackService extends Service
      * @param state
      * @return Trạng thái sau khi kết thúc play 1 bài hát.1 trong SongTimeLine.SHUFFLE_*.
      */
-    public static int shuffleMode(int state){
+    public static int shuffleMode(int state) {
         return (state & MASK_SHUFFLE) >> SHIFT_SHUFFLE;
     }
 
-    public int loadState(){
+    public int loadState() {
         int state = 0;
         try {
             DataInputStream in = new DataInputStream(openFileInput(STATE_FILE));
@@ -826,17 +891,17 @@ public class PlaybackService extends Service
         return state;
     }
 
-    public void saveState(int pendingSeek){
-        try{
+    public void saveState(int pendingSeek) {
+        try {
             DataOutputStream out = new DataOutputStream(openFileOutput(STATE_FILE, 0));
             Song song = mCurrentSong;
             out.writeLong(STATE_FILE_MAGIC);
             out.writeInt(STATE_VERSION);
             out.writeInt(pendingSeek);
-            out.writeLong(song == null ? -1 :  song.id);
+            out.writeLong(song == null ? -1 : song.id);
             mSongTimeLine.writeState(out);
             out.close();
-        }catch (IOException e){
+        } catch (IOException e) {
             Log.w("SoundPlusPlus", "Failed to save state", e);
         }
     }
@@ -844,6 +909,7 @@ public class PlaybackService extends Service
 
     /**
      * Bỏ bài hát ra khỏi hàng đợi
+     *
      * @param which index to remove
      */
     public void removeSongPosition(int which) {
@@ -853,79 +919,79 @@ public class PlaybackService extends Service
     /**
      * Trả về đối tượng SharedPreferences chứa settings của playbackservice,
      * tạo mới nếu cần thiết.
+     *
      * @param context
      * @return
      */
-    public static SharedPreferences getSettings(Context context){
-        if(sSettings == null){
+    public static SharedPreferences getSettings(Context context) {
+        if (sSettings == null) {
             sSettings = PreferenceManager.getDefaultSharedPreferences(context);
         }
 
         return sSettings;
     }
 
-    private void updateNotification(){
-        Log.d("NotificationTest","UpdateNotification");
+    private void updateNotification() {
+        Log.d("NotificationTest", "UpdateNotification");
         //Nếu mode đang playing và state đang playing và có bài hát
-        if ((mForceNotificationVisible || mNotificationMode == ALWAYS || mNotificationMode == WHEN_PLAYING  && (mState & FLAG_PLAYING) != 0) && mCurrentSong != null){
-            Log.d("NotificationTest","notify");
-            mNotificationManager.notify(NOTIFICATION_ID,createNotification(mCurrentSong,mState,mNotificationMode));
-        }
-        else mNotificationManager.cancel(NOTIFICATION_ID);
+        if ((mForceNotificationVisible || mNotificationMode == ALWAYS || mNotificationMode == WHEN_PLAYING && (mState & FLAG_PLAYING) != 0) && mCurrentSong != null) {
+            Log.d("NotificationTest", "notify");
+            mNotificationManager.notify(NOTIFICATION_ID, createNotification(mCurrentSong, mState, mNotificationMode));
+        } else mNotificationManager.cancel(NOTIFICATION_ID);
 
     }
 
-    public Notification createNotification(Song song,int state,int mode){
-        Log.d("NotificationTest","createNotification");
+    public Notification createNotification(Song song, int state, int mode) {
+        Log.d("NotificationTest", "createNotification");
         boolean playing = (state & FLAG_PLAYING) != 0;
-        RemoteViews views = new RemoteViews(getPackageName(),R.layout.notification);
-        Log.d("NotificationTest","Finish infate layout");
+        RemoteViews views = new RemoteViews(getPackageName(), R.layout.notification);
+        Log.d("NotificationTest", "Finish infate layout");
         int playButton = ThemeHelper.getPlayButtonResource(playing);
         views.setImageViewResource(R.id.play_pause, playButton);
-        Log.d("NotificationTest","Finish get playbutton");
+        Log.d("NotificationTest", "Finish get playbutton");
         ComponentName service = new ComponentName(this, PlaybackService.class);
 
         //Bấm nút pause play
         Intent playPause = new Intent(PlaybackService.ACTION_TOGGLE_PLAYBACK_NOTIFICATION);
         playPause.setComponent(service);
         views.setOnClickPendingIntent(R.id.play_pause, PendingIntent.getService(this, 0, playPause, 0));
-        Log.d("NotificationTest","Finish set playPause");
+        Log.d("NotificationTest", "Finish set playPause");
         //Bấm nút next
         Intent next = new Intent(PlaybackService.ACTION_NEXT_SONG);
         next.setComponent(service);
         views.setOnClickPendingIntent(R.id.next, PendingIntent.getService(this, 0, next, 0));
-        Log.d("NotificationTest","Finish set next");
+        Log.d("NotificationTest", "Finish set next");
         //cấu hình cho nút close
         int closeButtonVisibility = (mode == WHEN_PLAYING) ? View.VISIBLE : View.INVISIBLE;
         Intent close = new Intent(PlaybackService.ACTION_CLOSE_NOTIFICATION);
         close.setComponent(service);
         views.setOnClickPendingIntent(R.id.close, PendingIntent.getService(this, 0, close, 0));
         views.setViewVisibility(R.id.close, closeButtonVisibility);
-        Log.d("NotificationTest","Finish set close");
+        Log.d("NotificationTest", "Finish set close");
         //set 2 cái text view cho notification
         views.setTextViewText(R.id.title, song.title);
         views.setTextViewText(R.id.artist, song.artist);
-        Log.d("NotificationTest","Finish set title,artist");
+        Log.d("NotificationTest", "Finish set title,artist");
         Notification notification = new Notification();
         notification.contentView = views;
         notification.icon = R.drawable.status_icon;
         notification.flags |= Notification.FLAG_ONGOING_EVENT;
         //notification.contentIntent = mNotificationAction;
-       // notification.visibility = Notification.VISIBILITY_PUBLIC;
-        Log.d("NotificationTest","Return notification");
+        // notification.visibility = Notification.VISIBILITY_PUBLIC;
+        Log.d("NotificationTest", "Return notification");
         return notification;
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d("NotificationTest","onStartCommand");
+        Log.d("NotificationTest", "onStartCommand");
         if (intent != null) {
             String action = intent.getAction();
             if (ACTION_TOGGLE_PLAYBACK.equals(action)) {
-                Log.d("NotificationTest","ACTION_TOGGLE_PLAYBACK");
+                Log.d("NotificationTest", "ACTION_TOGGLE_PLAYBACK");
                 playPause();
             } else if (ACTION_TOGGLE_PLAYBACK_NOTIFICATION.equals(action)) {
-                Log.d("NotificationTest","ACTION_TOGGLE_PLAYBACK_NOTIFICATION");
+                Log.d("NotificationTest", "ACTION_TOGGLE_PLAYBACK_NOTIFICATION");
                 mForceNotificationVisible = true;
                 synchronized (mStateLock) {
                     if ((mState & FLAG_PLAYING) != 0)
@@ -934,16 +1000,22 @@ public class PlaybackService extends Service
                         play();
                 }
             } else if (ACTION_NEXT_SONG.equals(action)) {
-                Log.d("NotificationTest","ACTION_NEXT_SONG");
+                Log.d("NotificationTest", "ACTION_NEXT_SONG");
                 shiftCurrentSong(SongTimeLine.SHIFT_NEXT_SONG);
-            }else if (ACTION_PLAY.equals(action)) {
-                Log.d("NotificationTest","ACTION_PLAY");
+            } else if (ACTION_NEXT_SONG_AUTOPLAY.equals(action)) {
+                shiftCurrentSong(SongTimeLine.SHIFT_NEXT_SONG);
+                play();
+            } else if (ACTION_PLAY.equals(action)) {
+                Log.d("NotificationTest", "ACTION_PLAY");
+                play();
+            } else if (ACTION_PREVIOUS_SONG_AUTOPLAY.equals(action)) {
+                rewindCurrentSong();
                 play();
             } else if (ACTION_PAUSE.equals(action)) {
-                Log.d("NotificationTest","ACTION_PAUSE");
+                Log.d("NotificationTest", "ACTION_PAUSE");
                 pause();
-            }else if (ACTION_CLOSE_NOTIFICATION.equals(action)) {
-                Log.d("NotificationTest","ACTION_CLOSE_NOTIFICATION");
+            } else if (ACTION_CLOSE_NOTIFICATION.equals(action)) {
+                Log.d("NotificationTest", "ACTION_CLOSE_NOTIFICATION");
                 mForceNotificationVisible = false;
                 pause();
                 stopForeground(true); // sometimes required to clear notification
@@ -952,6 +1024,50 @@ public class PlaybackService extends Service
         }
         return START_NOT_STICKY;
         //return super.onStartCommand(intent,flags,startId);
+    }
+
+    //===================AudioManager.OnAudioFocusChangeListener================================//
+    @Override
+    public void onAudioFocusChange(int focusChange) {
+        Log.d("TestRemote", "audio focus change: " + focusChange);
+        if (mIgnoreAudioFocusLoss) {
+            switch (focusChange) {
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                case AudioManager.AUDIOFOCUS_LOSS:
+                    focusChange = AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK;
+            }
+        }
+
+        switch (focusChange) {
+            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                synchronized (mStateLock) {
+                    if ((mState & FLAG_PLAYING) != 0) {
+                        mTransientAudioLoss = true;
+
+                        if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+//                            setFlag(FLAG_DUCKING);
+                        } else {
+                            mForceNotificationVisible = true;
+                            unsetFlag(FLAG_PLAYING);
+                        }
+                    }
+                    break;
+                }
+            case AudioManager.AUDIOFOCUS_LOSS:
+                mTransientAudioLoss = false;
+                mForceNotificationVisible = true;
+                unsetFlag(FLAG_PLAYING);
+                break;
+            case AudioManager.AUDIOFOCUS_GAIN:
+                if (mTransientAudioLoss) {
+                    mTransientAudioLoss = false;
+                    // Restore all flags possibly changed by AUDIOFOCUS_LOSS_TRANSIENT_*
+//                    unsetFlag(FLAG_DUCKING);
+                    setFlag(FLAG_PLAYING);
+                }
+                break;
+        }
     }
 
     //===============SharedPreferences.OnSharedPreferenceChangeListener===============//

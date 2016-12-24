@@ -27,7 +27,11 @@
             </intent-filter>
 
         </activity>
-
+        <receiver android:name="chongxuocmanhinh.sound_plusplus.MediaButtonReceiver" >
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
         <activity
             android:name="chongxuocmanhinh.sound_plusplus.PermissionRequestActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
