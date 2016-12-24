@@ -1,6 +1,10 @@
 package chongxuocmanhinh.sound_plusplus;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -15,6 +19,8 @@ import android.os.Process;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.view.View;
+import android.widget.RemoteViews;
 import android.widget.Toast;
 
 import java.io.DataInputStream;
@@ -36,6 +42,7 @@ public class PlaybackService extends Service
                 SongTimeLine.Callback,
                 MediaPlayer.OnCompletionListener,/** Hai cái này cần phải implement*/
                 MediaPlayer.OnErrorListener
+               // ,SharedPreferences.OnSharedPreferenceChangeListener
 {
     /**
      *Tên của file lưu các trạng thái của service
@@ -54,18 +61,23 @@ public class PlaybackService extends Service
     private Handler mHandler;
     SoundPlusPLusMediaPlayer mMediaPlayer;
     SoundPlusPLusMediaPlayer mPreparedMediaPlayer;
-
+    private NotificationManager mNotificationManager;
     AudioManager mAudioManager;
 
     private Song mCurrentSong;
     SongTimeLine mSongTimeLine;
 
     private int mPendingSeek;
+    private static final int NOTIFICATION_ID = 2;
     /**
      * Id của bài cho mPendingSeek.bằng -1 thì bài hát ko đúng
      * thì mPendingSeek sẽ bằng 0
      */
     private long mPendingSeekSong;
+    /**
+     * Nếu set true,thì notification sẽ được hiển thị cho dù đang pausing
+     */
+    private boolean mForceNotificationVisible;
 
     /**
      * mảng static tham chiếu đến các playbackActivities, sử dụng cho các hàm callbacks
@@ -155,6 +167,43 @@ public class PlaybackService extends Service
     private static SharedPreferences sSettings;
 
     private boolean mMediaPlayerInitialized;
+
+    /**
+     * Hành động khi startService(hàm onStartCommad được gọi): toggle playback on/off.
+     */
+    public static final String ACTION_TOGGLE_PLAYBACK = "cchongxuocmanhinh.sound_plusplus.action.TOGGLE_PLAYBACK";
+    /**
+     * Hành động khi startService(hàm onStartCommad được gọi): start playback nếu paused.
+     */
+    public static final String ACTION_PLAY = "chongxuocmanhinh.sound_plusplus.action.PLAY";
+    /**
+     * Hành động khi startService(hàm onStartCommad được gọi): pause playback nếu playing.
+     */
+    public static final String ACTION_PAUSE = "chongxuocmanhinh.sound_plusplus.action.PAUSE";
+
+    /**
+     * Hành động khi startService(hàm onStartCommad được gọi): chuyển sang bài tiếp theo.
+     */
+    public static final String ACTION_NEXT_SONG = "chongxuocmanhinh.sound_plusplus.action.NEXT_SONG";
+    /**
+     * Hành động khi startService(hàm onStartCommad được gọi): toggle playback on/off.
+     *
+     * hoạt động giống ACTION_TOGGLE_PLAYBACK,nhưng ko bắt buộc ẩn thông báo như ACTION_TOGGLE_PLAYBACK
+     */
+    public static final String ACTION_TOGGLE_PLAYBACK_NOTIFICATION = "chongxuocmanhinh.sound_plusplus.action.TOGGLE_PLAYBACK_NOTIFICATION";
+    /**
+     * Pause music and hide the notifcation.
+     */
+    public static final String ACTION_CLOSE_NOTIFICATION = "chongxuocmanhinh.sound_plusplus.action.CLOSE_NOTIFICATION";
+
+    public static final int NEVER = 0;
+    public static final int WHEN_PLAYING = 1;
+    public static final int ALWAYS = 2;
+
+    /**
+     * Chế độ của notification,1 trong 3 chế độ ở trên
+     */
+    private int mNotificationMode;
     @Override
     public void onCreate() {
         HandlerThread thread = new HandlerThread("PlaybackService", Process.THREAD_PRIORITY_DEFAULT);
@@ -169,9 +218,12 @@ public class PlaybackService extends Service
         mPreparedMediaPlayer = getNewMediaPLayer();
         //Ta chỉ sử dụng duy nhất một audioseissionId
         mPreparedMediaPlayer.setAudioSessionId(mMediaPlayer.getAudioSessionId());
-
+        mNotificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
         mAudioManager = (AudioManager)getSystemService(AUDIO_SERVICE);
 
+        SharedPreferences settings = getSettings(this);
+        //settings.registerOnSharedPreferenceChangeListener(this);
+        mNotificationMode = Integer.parseInt(settings.getString(PrefKeys.NOTIFICATION_MODE, PrefDefaults.NOTIFICATION_MODE));
         mLooper = thread.getLooper();
         mHandler = new Handler(mLooper, this);
         updateState(state);
@@ -250,6 +302,11 @@ public class PlaybackService extends Service
 
             mMediaPlayerInitialized = true;
 
+            if (mPendingSeek != 0 && mPendingSeekSong == song.id) {
+                mMediaPlayer.seekTo(mPendingSeek);
+                mPendingSeek = 0;
+            }
+
             if ((mState & FLAG_PLAYING) != 0)
                 mMediaPlayer.start();
 
@@ -258,7 +315,7 @@ public class PlaybackService extends Service
             Log.d("Test","Error!");
 
         }
-
+        updateNotification();
     }
 
     public void addSongs(QueryTask query){
@@ -273,6 +330,7 @@ public class PlaybackService extends Service
      */
     public int playPause()
     {
+        mForceNotificationVisible = false;
         Log.d("TestPlayPause","Enter service playpause()");
         synchronized (mStateLock) {
             if ((mState & FLAG_PLAYING) != 0)
@@ -383,11 +441,30 @@ public class PlaybackService extends Service
                 if (mMediaPlayerInitialized)
                     mMediaPlayer.start();
 
+                if (mNotificationMode != NEVER)
+                    startForeground(NOTIFICATION_ID, createNotification(mCurrentSong, mState, mNotificationMode));
+
             }
             else{//Nếu state mới là pause
                 Log.d("TestPlayPause"," mMediaPlayer.pause();");
                 if (mMediaPlayerInitialized)
                     mMediaPlayer.pause();
+
+                /**
+                 * Khi chuyển trạng thái sang pause  nếu ko cần hiển thị thông báo
+                 * thì có thể stopForeground
+                 */
+                boolean removeNotification = (mForceNotificationVisible == false && mNotificationMode != ALWAYS);
+                stopForeground(removeNotification);
+                updateNotification();
+            }
+        }
+
+        if ((toggled & FLAG_NO_MEDIA) != 0 && (state & FLAG_NO_MEDIA) != 0) {
+            Song song = mCurrentSong;
+            if (song != null && mMediaPlayerInitialized) {
+                mPendingSeek = mMediaPlayer.getCurrentPosition();
+                mPendingSeekSong = song.id;
             }
         }
 
@@ -786,4 +863,100 @@ public class PlaybackService extends Service
 
         return sSettings;
     }
+
+    private void updateNotification(){
+        Log.d("NotificationTest","UpdateNotification");
+        //Nếu mode đang playing và state đang playing và có bài hát
+        if ((mForceNotificationVisible || mNotificationMode == ALWAYS || mNotificationMode == WHEN_PLAYING  && (mState & FLAG_PLAYING) != 0) && mCurrentSong != null){
+            Log.d("NotificationTest","notify");
+            mNotificationManager.notify(NOTIFICATION_ID,createNotification(mCurrentSong,mState,mNotificationMode));
+        }
+        else mNotificationManager.cancel(NOTIFICATION_ID);
+
+    }
+
+    public Notification createNotification(Song song,int state,int mode){
+        Log.d("NotificationTest","createNotification");
+        boolean playing = (state & FLAG_PLAYING) != 0;
+        RemoteViews views = new RemoteViews(getPackageName(),R.layout.notification);
+        Log.d("NotificationTest","Finish infate layout");
+        int playButton = ThemeHelper.getPlayButtonResource(playing);
+        views.setImageViewResource(R.id.play_pause, playButton);
+        Log.d("NotificationTest","Finish get playbutton");
+        ComponentName service = new ComponentName(this, PlaybackService.class);
+
+        //Bấm nút pause play
+        Intent playPause = new Intent(PlaybackService.ACTION_TOGGLE_PLAYBACK_NOTIFICATION);
+        playPause.setComponent(service);
+        views.setOnClickPendingIntent(R.id.play_pause, PendingIntent.getService(this, 0, playPause, 0));
+        Log.d("NotificationTest","Finish set playPause");
+        //Bấm nút next
+        Intent next = new Intent(PlaybackService.ACTION_NEXT_SONG);
+        next.setComponent(service);
+        views.setOnClickPendingIntent(R.id.next, PendingIntent.getService(this, 0, next, 0));
+        Log.d("NotificationTest","Finish set next");
+        //cấu hình cho nút close
+        int closeButtonVisibility = (mode == WHEN_PLAYING) ? View.VISIBLE : View.INVISIBLE;
+        Intent close = new Intent(PlaybackService.ACTION_CLOSE_NOTIFICATION);
+        close.setComponent(service);
+        views.setOnClickPendingIntent(R.id.close, PendingIntent.getService(this, 0, close, 0));
+        views.setViewVisibility(R.id.close, closeButtonVisibility);
+        Log.d("NotificationTest","Finish set close");
+        //set 2 cái text view cho notification
+        views.setTextViewText(R.id.title, song.title);
+        views.setTextViewText(R.id.artist, song.artist);
+        Log.d("NotificationTest","Finish set title,artist");
+        Notification notification = new Notification();
+        notification.contentView = views;
+        notification.icon = R.drawable.status_icon;
+        notification.flags |= Notification.FLAG_ONGOING_EVENT;
+        //notification.contentIntent = mNotificationAction;
+       // notification.visibility = Notification.VISIBILITY_PUBLIC;
+        Log.d("NotificationTest","Return notification");
+        return notification;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d("NotificationTest","onStartCommand");
+        if (intent != null) {
+            String action = intent.getAction();
+            if (ACTION_TOGGLE_PLAYBACK.equals(action)) {
+                Log.d("NotificationTest","ACTION_TOGGLE_PLAYBACK");
+                playPause();
+            } else if (ACTION_TOGGLE_PLAYBACK_NOTIFICATION.equals(action)) {
+                Log.d("NotificationTest","ACTION_TOGGLE_PLAYBACK_NOTIFICATION");
+                mForceNotificationVisible = true;
+                synchronized (mStateLock) {
+                    if ((mState & FLAG_PLAYING) != 0)
+                        pause();
+                    else
+                        play();
+                }
+            } else if (ACTION_NEXT_SONG.equals(action)) {
+                Log.d("NotificationTest","ACTION_NEXT_SONG");
+                shiftCurrentSong(SongTimeLine.SHIFT_NEXT_SONG);
+            }else if (ACTION_PLAY.equals(action)) {
+                Log.d("NotificationTest","ACTION_PLAY");
+                play();
+            } else if (ACTION_PAUSE.equals(action)) {
+                Log.d("NotificationTest","ACTION_PAUSE");
+                pause();
+            }else if (ACTION_CLOSE_NOTIFICATION.equals(action)) {
+                Log.d("NotificationTest","ACTION_CLOSE_NOTIFICATION");
+                mForceNotificationVisible = false;
+                pause();
+                stopForeground(true); // sometimes required to clear notification
+                updateNotification();
+            }
+        }
+        return START_NOT_STICKY;
+        //return super.onStartCommand(intent,flags,startId);
+    }
+
+    //===============SharedPreferences.OnSharedPreferenceChangeListener===============//
+//    @Override
+//    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+//
+//    }
 }
