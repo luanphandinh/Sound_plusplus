@@ -533,6 +533,38 @@ public class SongTimeLine {
         }
         changed();
     }
+
+    /**
+     * Di chuyển bài hát trong timline tới vị trí mới
+     * @param from vị trí bắt đầu move
+     * @param to vị trí sau khi move
+     */
+    public void moveSongPosition(int from,int to){
+        synchronized (this){
+            ArrayList<Song> songs = mSongs;
+
+            if (songs.size() <= from || songs.size() <= to)
+                return;
+
+            saveActiveSongs();
+
+            Song tmp = songs.remove(from);
+            songs.add(to,tmp);
+
+            //Nếu bài hát đang được mở mà drag đến chỗ khác
+            if (mCurrentPos == from) {
+                mCurrentPos = to;
+            } else if (from > mCurrentPos && to <= mCurrentPos) {
+                mCurrentPos++;
+            } else if (from < mCurrentPos && to >= mCurrentPos) {
+                mCurrentPos--;
+            }
+
+            broadcastChangedSongs();
+        }
+        changed();
+
+    }
     /**
      * Trả về danh sách đã được xáo(dựa trên shufflemode) của timeline.
      * Giá trị trả về sẽ được cached.

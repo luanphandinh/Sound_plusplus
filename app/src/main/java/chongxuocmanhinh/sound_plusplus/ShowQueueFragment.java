@@ -15,16 +15,24 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
+import com.mobeta.android.dslv.DragSortListView;
+
 /**
  * Created by L on 05/12/2016.
+ * Update 25/12/2016 Thêm DSLV vào fragment thay thế cho listview bình thường
+ * xem thêm DSLV tại:
+ *  https://github.com/bauerca/drag-sort-listview
  */
 public class ShowQueueFragment extends Fragment
         implements  TimelineCallback,
                     AdapterView.OnItemClickListener,
-                    MenuItem.OnMenuItemClickListener
+                    MenuItem.OnMenuItemClickListener,
+                    DragSortListView.DropListener,
+                    DragSortListView.RemoveListener
+
 {
     //Sau này phần này sẽ chuyển sang draggable row nếu có thể
-    private ListView mListView;
+    private DragSortListView mListView;
     private ShowQueueAdapter mListAdapter;
     private PlaybackService mService;
 
@@ -35,9 +43,11 @@ public class ShowQueueFragment extends Fragment
         View view = inflater.inflate(R.layout.showqueue_listview, container, false);
         Context context = getActivity();
 
-        mListView    = (ListView) view.findViewById(R.id.list);
+        mListView    = (DragSortListView) view.findViewById(R.id.list);
         mListAdapter = new ShowQueueAdapter(context, R.layout.draggable_row);
         mListView.setAdapter(mListAdapter);
+        mListView.setDropListener(this);
+        mListView.setRemoveListener(this);
         mListView.setOnItemClickListener(this);
         mListView.setOnCreateContextMenuListener(this);
         PlaybackService.addTimelineCallback(this);
@@ -172,5 +182,13 @@ public class ShowQueueFragment extends Fragment
                 throw new IllegalArgumentException("Unhandled menu id received!");
         }
         return true;
+    }
+
+    //===================DragSortListView.DropListener======================//
+    @Override
+    public void drop(int from, int to) {
+        if (from != to) {
+            mService.moveSongPosition(from, to);
+        }
     }
 }

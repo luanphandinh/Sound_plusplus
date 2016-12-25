@@ -844,6 +844,9 @@ public class PlaybackService extends Service
         mSongTimeLine.emptyQueue();
     }
 
+    public void moveSongPosition(int from,int to){
+        mSongTimeLine.moveSongPosition(from ,to);
+    }
 
     /**
      * Trả về finish action khi truyền trạng thái vào
@@ -1069,6 +1072,7 @@ public class PlaybackService extends Service
                 break;
         }
     }
+
 
     //===============SharedPreferences.OnSharedPreferenceChangeListener===============//
 //    @Override
