@@ -8,5 +8,5 @@ public class PrefDefaults {
     public static final boolean IGNORE_AUDIOFOCUS_LOSS = false;
     public static final String  SELECTED_THEME = "0";
     public static final String  DEFAULT_PLAYLIST_ACTION = "0";
-
+    public static final boolean HEADSET_ONLY = false;
 }

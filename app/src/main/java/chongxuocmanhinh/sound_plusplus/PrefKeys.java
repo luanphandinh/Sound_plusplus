@@ -8,6 +8,6 @@ public class PrefKeys {
     public static final String IGNORE_AUDIOFOCUS_LOSS = "ignore_audiofocus_loss";
     public static final String SELECTED_THEME = "selected_theme";
     public static final String DEFAULT_PLAYLIST_ACTION = "default_playlist_action";
-
+    public static final String HEADSET_ONLY = "headset_only";
 }
 
