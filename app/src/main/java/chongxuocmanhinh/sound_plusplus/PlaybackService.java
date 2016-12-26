@@ -844,6 +844,39 @@ public class PlaybackService extends Service
         mSongTimeLine.emptyQueue();
     }
 
+    /**
+     * Đưa tất cả các bài hát có cùng artist/album/genre giống với bài hát được truyền vào
+     * vô hàng đợi play
+     * @param song bìa hát được truyền vào
+     * @param type media type, 1 trong MediaUtils.TYPE_ALBUM, TYPE_ARTIST,
+     * or TYPE_GENRE
+     */
+    public void enqueueFromSong(Song song,int type){
+        if (song == null)
+            return;
+
+        long id;
+        switch (type){
+            case MediaUtils.TYPE_ARTIST:
+                id = song.artistId;
+                break;
+            case MediaUtils.TYPE_ALBUM:
+                id = song.albumId;
+                break;
+            case MediaUtils.TYPE_GENRE:
+                id = MediaUtils.queryGenreForSong(getContentResolver(), song.id);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported media type: " + type);
+        }
+
+        //Chỉ query các bài hát cùng artist/album/genre và trừ bản thân nó ra
+        String selection = "_id!=" + song.id;
+        QueryTask queryTask = MediaUtils.buildQuery(type,id,Song.FILLED_PROJECTION,selection);
+        queryTask.mode = SongTimeLine.MODE_FLUSH_AND_PLAY_NEXT;
+        addSongs(queryTask);
+    }
+
     public void moveSongPosition(int from,int to){
         mSongTimeLine.moveSongPosition(from ,to);
     }

@@ -91,6 +91,7 @@ public class MediaUtils {
         }
         return cursor;
     }
+
     /**
      * Builds a query that will return all the songs in the genre with the
      * given id.
@@ -251,6 +252,10 @@ public class MediaUtils {
             case TYPE_SONG:
                 Log.d("TestPlay","BuildSongQuery");
                 return buildMediaQuery(type, id, projection, selection);
+            case TYPE_PLAYLIST:
+                return  buildPlaylistQuery(id,projection,selection);
+            case TYPE_GENRE:
+                return buildGenreQuery(id, projection, selection, null,  MediaStore.Audio.Genres.Members.TITLE_KEY, TYPE_SONG, true);
             default:
                 throw new IllegalArgumentException("Specified type not valid: " + type);
         }
@@ -296,6 +301,25 @@ public class MediaUtils {
         result.type = type;
         return result;
     }
+
+
+    /**
+     *  Trả về tất cả bài hát với id của playlist.
+     *
+     * @param id id  của playlist trong MediaStore.Audio.Playlists.
+     * @param projection Cột.
+     * @param selection câu lệnh truy vấn kèm theo.
+     * @return query đã được khởi tạo.
+     */
+    public static QueryTask buildPlaylistQuery(long id, String[] projection, String selection)
+    {
+        Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", id);
+        String sort = MediaStore.Audio.Playlists.Members.PLAY_ORDER;
+        QueryTask result = new QueryTask(uri, projection, selection, null, sort);
+        result.type = TYPE_PLAYLIST;
+        return result;
+    }
+
 
     /**
      * Shuffle danh sách các bài hát sử dụng Collections.shuffle().
@@ -367,4 +391,25 @@ public class MediaUtils {
         return sRandom;
     }
 
+
+
+    /**
+     *Query MediaStore để tìm ra id genre của bài hát.
+     *
+     * @param resolver A ContentResolver to use.
+     * @param id của bài hát được truyền vào để tìm id thể loại
+     */
+    public static long queryGenreForSong(ContentResolver resolver, long id)
+    {
+        String[] projection = { "_id" };
+        Uri uri = MediaStore.Audio.Genres.getContentUriForAudioId("external", (int)id);
+        Cursor cursor = queryResolver(resolver, uri, projection, null, null, null);
+
+        if (cursor != null) {
+            if (cursor.moveToNext())
+                return cursor.getLong(0);
+            cursor.close();
+        }
+        return 0;
+    }
 }

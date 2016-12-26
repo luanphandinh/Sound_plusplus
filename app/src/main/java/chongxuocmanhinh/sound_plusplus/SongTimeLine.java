@@ -268,6 +268,9 @@ public class SongTimeLine {
                 case MODE_ENQUEUE:
                 case MODE_ENQUEUE_AS_NEXT:
                     break;
+                case MODE_FLUSH_AND_PLAY_NEXT:
+                    timeline.subList(mCurrentPos + 1,timeline.size()).clear();
+                    break;
                 case MODE_PLAY:
                 case MODE_PLAY_ID_FIRST:
                     timeline.clear();

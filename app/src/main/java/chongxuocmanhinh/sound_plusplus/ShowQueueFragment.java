@@ -147,6 +147,9 @@ public class ShowQueueFragment extends Fragment
     }
 
     private final static int CTX_MENU_PLAY           = 100;
+    private final static int CTX_MENU_ENQUEUE_ALBUM  = 101;
+    private final static int CTX_MENU_ENQUEUE_ARTIST = 102;
+    private final static int CTX_MENU_ENQUEUE_GENRE  = 103;
     private final static int CTX_MENU_REMOVE         = 104;
 
     @Override
@@ -160,6 +163,9 @@ public class ShowQueueFragment extends Fragment
         intent.putExtra("position", info.position);
         menu.setHeaderTitle(song.title);
         menu.add(0, CTX_MENU_PLAY, 0, R.string.play).setIntent(intent).setOnMenuItemClickListener(this);
+        menu.add(0, CTX_MENU_ENQUEUE_ALBUM, 0, R.string.enqueue_current_album).setIntent(intent).setOnMenuItemClickListener(this);
+        menu.add(0, CTX_MENU_ENQUEUE_ARTIST, 0, R.string.enqueue_current_artist).setIntent(intent).setOnMenuItemClickListener(this);
+        menu.add(0, CTX_MENU_ENQUEUE_GENRE, 0, R.string.enqueue_current_genre).setIntent(intent).setOnMenuItemClickListener(this);
         menu.add(0, CTX_MENU_REMOVE, 0, R.string.remove).setIntent(intent).setOnMenuItemClickListener(this);
     }
 
@@ -177,6 +183,15 @@ public class ShowQueueFragment extends Fragment
                 break;
             case CTX_MENU_REMOVE:
                 remove(pos);
+                break;
+            case CTX_MENU_ENQUEUE_ARTIST:
+                mService.enqueueFromSong(song,MediaUtils.TYPE_ARTIST);
+                break;
+            case CTX_MENU_ENQUEUE_ALBUM:
+                mService.enqueueFromSong(song,MediaUtils.TYPE_ALBUM);
+                break;
+            case CTX_MENU_ENQUEUE_GENRE:
+                mService.enqueueFromSong(song,MediaUtils.TYPE_GENRE);
                 break;
             default:
                 throw new IllegalArgumentException("Unhandled menu id received!");
