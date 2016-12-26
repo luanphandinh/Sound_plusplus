@@ -303,11 +303,23 @@ public class MediaAdapter extends BaseAdapter
         }
         else sortDir = "ASC";
 
-        String sortStringRow = mSortValues[mode];
+        String sortStringRaw = mSortValues[mode];
         String[] enrichedProjection = null;
         //Magic sort mode:sort by playcount
-        if(sortStringRow == SORT_MAGIC_PLAYCOUNT) {
+        if(sortStringRaw == SORT_MAGIC_PLAYCOUNT) {
             //implement for sorting form database with song counthelper
+            enrichedProjection = projection;
+
+            ArrayList<Long> topSongs = (new PlayCountsHelper(mContext)).getTopSongs(4096);
+            int sortWeight = -1 * topSongs.size(); // Sort mode thì bị ngược lúc đầu (mặc định: mostplayed -> leastplayed)
+
+            StringBuilder sb = new StringBuilder("CASE WHEN _id=0 THEN 0"); //  topSongs may be rỗng
+            for (Long id : topSongs) {
+                sb.append(" WHEN _id="+id+" THEN "+sortWeight);
+                sortWeight++;
+            }
+            sb.append(" ELSE 0 END %1s");
+            sortStringRaw = sb.toString();
         }
         else{
             //enrich projection with sort column to build alphabet later
@@ -317,14 +329,14 @@ public class MediaAdapter extends BaseAdapter
             if(returnSongs && mType != MediaUtils.TYPE_SONG){
                 //We are in a non-song adapter but requested to return song-sorting
                 //can only be done by using the adapters default sort mode
-                sortStringRow = mSongSort;
+                sortStringRaw = mSongSort;
             }
         }
 
 
         //Sort value sẽ được add vào khi build query
         //Thay cái %1$s bằng DESC or ASC
-        String sort = String.format(sortStringRow,sortDir);
+        String sort = String.format(sortStringRaw,sortDir);
 
         if(returnSongs || mType == MediaUtils.TYPE_SONG)
             selection.append(MediaStore.Audio.Media.IS_MUSIC + " AND length(_data)");

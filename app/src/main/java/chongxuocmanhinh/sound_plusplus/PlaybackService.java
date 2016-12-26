@@ -74,6 +74,11 @@ public class PlaybackService extends Service
     SongTimeLine mSongTimeLine;
 
     private int mPendingSeek;
+    /**
+     * tham chiếu tới Playcounts helper class
+     */
+    private PlayCountsHelper mPlayCounts;
+
     private static final int NOTIFICATION_ID = 2;
     /**
      * A remote control client implementation
@@ -245,6 +250,7 @@ public class PlaybackService extends Service
         mSongTimeLine.setCallback(this);
 
         int state = loadState();
+        mPlayCounts = new PlayCountsHelper(this);
 
         mMediaPlayer = getNewMediaPLayer();
         mPreparedMediaPlayer = getNewMediaPLayer();
@@ -553,6 +559,7 @@ public class PlaybackService extends Service
     private static final int MSG_SAVE_STATE = 12;
     private static final int MSG_PROCESS_SONG = 13;
     private static final int MSG_PROCESS_STATE = 14;
+    private static final int MSG_UPDATE_PLAYCOUNTS = 17;
 
     @Override
     public boolean handleMessage(Message msg) {
@@ -573,6 +580,11 @@ public class PlaybackService extends Service
             case MSG_PROCESS_STATE:
                 processNewState(msg.arg1, msg.arg2);
                 break;
+            case MSG_UPDATE_PLAYCOUNTS:
+                Song song = (Song) msg.obj;
+                boolean played = msg.arg1 == 1;
+                mPlayCounts.countSong(song,played);
+
             default:
                 return false;
         }
@@ -604,6 +616,9 @@ public class PlaybackService extends Service
     //=======================MediaPlayer.OnCompletionListener=========================//
     @Override
     public void onCompletion(MediaPlayer mp) {
+
+        //Đếm số lần được mở,played
+        mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_UPDATE_PLAYCOUNTS, 1, 0, mCurrentSong), 800);
 
         if (finishAction(mState) == SongTimeLine.FINISH_REPEAT_CURRENT) {
             setCurrentSong(0);
@@ -653,6 +668,7 @@ public class PlaybackService extends Service
      * @return
      */
     public Song shiftCurrentSong(int delta) {
+        preparePlayCountsUpdate(delta);
         Song song = setCurrentSong(delta);
         return song;
     }
@@ -742,6 +758,22 @@ public class PlaybackService extends Service
         return mMediaPlayer.getCurrentPosition();
     }
 
+    private void preparePlayCountsUpdate(int delta){
+        if(isPlaying()){
+            double pctPlayed = (double) getPosition()/getDuration();
+            int action = 0;
+
+            if (delta == SongTimeLine.SHIFT_KEEP_SONG && pctPlayed >= 0.8) {
+                action = 1; // nếu bài hát được mở lại và đã được mở hơn 80% thì đếm
+            } else if(delta == SongTimeLine.SHIFT_NEXT_SONG && pctPlayed <= 0.5) {
+                action = -1;
+            }
+
+            if (action != 0) {
+                mHandler.sendMessageDelayed(mHandler.obtainMessage(MSG_UPDATE_PLAYCOUNTS, action, 0, mCurrentSong), 800);
+            }
+        }
+    }
 
     /**
      * Seek to a position in the current song.
