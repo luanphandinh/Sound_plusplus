@@ -298,12 +298,25 @@ public class LibraryActivity extends SlidingPlaybackActivity
 
         return queryTask;
     }
+    /**
+     * Mở playlist editor
+     */
+    private void editPlaylist(Intent rowData)
+    {
+        Intent launch = new Intent(this, PlaylistActivity.class);
+        launch.putExtra("playlist", rowData.getLongExtra(LibraryAdapter.DATA_ID, LibraryAdapter.INVALID_ID));
+        launch.putExtra("title", rowData.getStringExtra(LibraryAdapter.DATA_TITLE));
+        startActivity(launch);
+    }
 
     public void onItemExpanded(Intent rowData){
         int type = rowData.getIntExtra(LibraryAdapter.DATA_TYPE,MediaUtils.TYPE_INVALID);
         if(type == MediaUtils.TYPE_PLAYLIST)
-            return;
-        expand(rowData);
+            // playlist is coming :v
+            editPlaylist(rowData);
+
+        else
+            expand(rowData);
     }
 
     public void expand(Intent intent){

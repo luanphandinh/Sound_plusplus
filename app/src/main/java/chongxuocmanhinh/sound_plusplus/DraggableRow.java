@@ -134,4 +134,7 @@ public class DraggableRow extends LinearLayout implements Checkable{
     public TextView getTextView(){
         return mTextView;
     }
+
+
+
 }

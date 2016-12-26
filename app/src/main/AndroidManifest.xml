@@ -27,6 +27,9 @@
             </intent-filter>
 
         </activity>
+        <activity
+            android:name="chongxuocmanhinh.sound_plusplus.PlaylistActivity"
+            android:launchMode="singleTask" />
         <receiver android:name="chongxuocmanhinh.sound_plusplus.MediaButtonReceiver" >
             <intent-filter android:priority="999">
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
