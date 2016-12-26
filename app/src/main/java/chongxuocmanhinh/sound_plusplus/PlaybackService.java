@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -1012,33 +1013,60 @@ public class PlaybackService extends Service
     public Notification createNotification(Song song, int state, int mode) {
         Log.d("NotificationTest", "createNotification");
         boolean playing = (state & FLAG_PLAYING) != 0;
+
+        //views cho notification bình thường
         RemoteViews views = new RemoteViews(getPackageName(), R.layout.notification);
+        //expand views với nhiều chức năng hơn cho các thiết bị API lv cao hơn 16
+        RemoteViews expanded = new RemoteViews(getPackageName(), R.layout.notification_expanded);
         Log.d("NotificationTest", "Finish infate layout");
+        /**
+         * Cần implement COVER sau và chỗ này
+         */
+
         int playButton = ThemeHelper.getPlayButtonResource(playing);
         views.setImageViewResource(R.id.play_pause, playButton);
+        expanded.setImageViewResource(R.id.play_pause,playButton);
         Log.d("NotificationTest", "Finish get playbutton");
+
+        //==============================================================================//
         ComponentName service = new ComponentName(this, PlaybackService.class);
 
+        //bấm nút previous,có thêm trên expanded views
+        Intent previous = new Intent(PlaybackService.ACTION_PREVIOUS_SONG);
+        previous.setComponent(service);
+        expanded.setOnClickPendingIntent(R.id.previous, PendingIntent.getService(this, 0, previous, 0));
+        //==============================================================================//
         //Bấm nút pause play
         Intent playPause = new Intent(PlaybackService.ACTION_TOGGLE_PLAYBACK_NOTIFICATION);
         playPause.setComponent(service);
         views.setOnClickPendingIntent(R.id.play_pause, PendingIntent.getService(this, 0, playPause, 0));
+        expanded.setOnClickPendingIntent(R.id.play_pause, PendingIntent.getService(this, 0, playPause, 0));
         Log.d("NotificationTest", "Finish set playPause");
+        //==============================================================================//
         //Bấm nút next
         Intent next = new Intent(PlaybackService.ACTION_NEXT_SONG);
         next.setComponent(service);
         views.setOnClickPendingIntent(R.id.next, PendingIntent.getService(this, 0, next, 0));
+        expanded.setOnClickPendingIntent(R.id.next, PendingIntent.getService(this, 0, next, 0));
         Log.d("NotificationTest", "Finish set next");
+        //==============================================================================//
         //cấu hình cho nút close
         int closeButtonVisibility = (mode == WHEN_PLAYING) ? View.VISIBLE : View.INVISIBLE;
         Intent close = new Intent(PlaybackService.ACTION_CLOSE_NOTIFICATION);
         close.setComponent(service);
         views.setOnClickPendingIntent(R.id.close, PendingIntent.getService(this, 0, close, 0));
         views.setViewVisibility(R.id.close, closeButtonVisibility);
+        expanded.setOnClickPendingIntent(R.id.close, PendingIntent.getService(this, 0, close, 0));
+        expanded.setViewVisibility(R.id.close, closeButtonVisibility);
         Log.d("NotificationTest", "Finish set close");
+
+
         //set 2 cái text view cho notification
         views.setTextViewText(R.id.title, song.title);
         views.setTextViewText(R.id.artist, song.artist);
+        expanded.setTextViewText(R.id.title, song.title);
+        expanded.setTextViewText(R.id.album, song.album);
+        expanded.setTextViewText(R.id.artist, song.artist);
         Log.d("NotificationTest", "Finish set title,artist");
         Notification notification = new Notification();
         notification.contentView = views;
@@ -1047,8 +1075,14 @@ public class PlaybackService extends Service
         //notification.contentIntent = mNotificationAction;
         // notification.visibility = Notification.VISIBILITY_PUBLIC;
         Log.d("NotificationTest", "Return notification");
+        //Sử dụng expaned view cho android 4.x trở lên
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            // expanded view is available since 4.1
+            notification.bigContentView = expanded;
+        }
         return notification;
     }
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -1076,6 +1110,8 @@ public class PlaybackService extends Service
             } else if (ACTION_PLAY.equals(action)) {
                 Log.d("NotificationTest", "ACTION_PLAY");
                 play();
+            } else if (ACTION_PREVIOUS_SONG.equals(action)) {
+                rewindCurrentSong();
             } else if (ACTION_PREVIOUS_SONG_AUTOPLAY.equals(action)) {
                 rewindCurrentSong();
                 play();
