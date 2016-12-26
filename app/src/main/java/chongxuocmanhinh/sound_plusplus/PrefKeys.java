@@ -9,5 +9,6 @@ public class PrefKeys {
     public static final String SELECTED_THEME = "selected_theme";
     public static final String DEFAULT_PLAYLIST_ACTION = "default_playlist_action";
     public static final String HEADSET_ONLY = "headset_only";
+    public static final String HEADSET_PAUSE = "headset_pause";
 }
 
