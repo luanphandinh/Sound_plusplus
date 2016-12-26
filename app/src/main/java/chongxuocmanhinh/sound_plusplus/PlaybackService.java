@@ -1080,6 +1080,9 @@ public class PlaybackService extends Service
             // expanded view is available since 4.1
             notification.bigContentView = expanded;
         }
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            notification.visibility = Notification.VISIBILITY_PUBLIC;
+        }
         return notification;
     }
 
