@@ -23,8 +23,8 @@
     <TextView
         android:id="@+id/text"
         android:maxLines="2"
-        android:textColor="#ffffff"
         android:gravity="left|center_vertical"
+        android:textColor="?android:textColorPrimary"
         android:layout_width="0px"
         android:layout_height="@dimen/row_normal_height"
         android:layout_marginLeft="@dimen/text_padding"

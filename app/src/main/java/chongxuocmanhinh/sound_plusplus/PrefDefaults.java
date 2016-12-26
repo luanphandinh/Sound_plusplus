@@ -6,4 +6,5 @@ package chongxuocmanhinh.sound_plusplus;
 public class PrefDefaults {
     public static final String  NOTIFICATION_MODE = "1";
     public static final boolean IGNORE_AUDIOFOCUS_LOSS = false;
+    public static final String  SELECTED_THEME = "0";
 }

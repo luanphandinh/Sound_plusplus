@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <chongxuocmanhinh.sound_plusplus.BottomBarControls
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:background="#000000"
     android:elevation="8dp"
     android:orientation="vertical"
     android:layout_width="fill_parent"
@@ -48,7 +47,7 @@
                 android:gravity="center_vertical"
                 android:ellipsize="marquee"
                 android:layout_width="wrap_content"
-                android:textColor="@android:color/secondary_text_dark"
+                android:textColor="@android:color/background_light"
                 android:layout_height="wrap_content" />
         </LinearLayout>
     </LinearLayout>

@@ -131,6 +131,7 @@ public class LibraryActivity extends SlidingPlaybackActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("Test", "onCreate: ");
+        ThemeHelper.setTheme(this,R.style.Library);
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.library_content);

@@ -92,7 +92,7 @@ public class SlidingView extends FrameLayout
     }
     public SlidingView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-
+        setBackgroundColor(ThemeHelper.getDefaultCoverColors(context)[0]);
         mDetector = new GestureDetector(new GestureListener());
         TypedArray  a = context.obtainStyledAttributes(attrs,R.styleable.SlidingViewPreferences);
         mSliderHandleId = a.getResourceId(R.styleable.SlidingViewPreferences_slider_handle_id,0);

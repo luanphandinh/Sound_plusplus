@@ -13,18 +13,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:elevation="4dp"
-            android:background="#000000" />
+            android:background="?tabs_background" />
         <android.support.v4.view.ViewPager
             android:id="@+id/pager"
             android:layout_width="match_parent"
             android:layout_height="0px"
             android:layout_weight="1"
-            android:background="#000000"/>
+            />
         <HorizontalScrollView
             android:id="@+id/limiter_scroller"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:background="#000000"
             android:layout_gravity="bottom|left">
             <LinearLayout
                 android:id="@+id/limiter_layout"
@@ -45,7 +44,7 @@
         <LinearLayout
             android:layout_height="wrap_content"
             android:layout_width="fill_parent"
-            android:background="#000000"
+            android:background="?overlay_background_color"
             android:orientation="horizontal">
             <include layout="@layout/bottombar_controls" android:id="@+id/bottombar_controls" />
         </LinearLayout>
@@ -55,7 +54,6 @@
             android:layout_height="wrap_content"
             android:layout_width="fill_parent"
             android:layout_gravity="top"
-            android:background="#000000"
             android:elevation="2dp"
             android:orientation="horizontal">
             <TextView
@@ -87,7 +85,7 @@
         <LinearLayout
             android:layout_height="wrap_content"
             android:layout_width="fill_parent"
-            android:background="#000000"
+            android:background="?overlay_background_color"
             android:orientation="horizontal"
             android:elevation="2dp">
             <include layout="@layout/controls" />
