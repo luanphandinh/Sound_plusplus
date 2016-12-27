@@ -211,10 +211,14 @@ public class PlaylistActivity extends Activity
         mPlaylistName = title;
     }
 
-
+    /**
+     * hàm này dc gọi từ adapter listview nếu user dịch chuyển 1 bài hát
+     * @param from index của bài hát cần drag
+     * @param to index mà bài hát dc drop
+     * */
     @Override
     public void drop(int from, int to) {
-
+        mAdapter.moveSong(from,to);
     }
 
     @Override

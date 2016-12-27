@@ -21,8 +21,8 @@ import android.widget.TextView;
  * Cursor adapter dựa trên Mediastore playlists
  */
 
-public class PlaylistAdapter extends CursorAdapter implements Handler.Callback{
-    private static final String[] PROJECTION = new String[] {
+public class PlaylistAdapter extends CursorAdapter implements Handler.Callback {
+    private static final String[] PROJECTION = new String[]{
             MediaStore.Audio.Playlists.Members._ID,
             MediaStore.Audio.Playlists.Members.TITLE,
             MediaStore.Audio.Playlists.Members.ARTIST,
@@ -46,27 +46,28 @@ public class PlaylistAdapter extends CursorAdapter implements Handler.Callback{
      * Update the cursor. Must be run on UI thread.
      */
     public static final int MSG_UPDATE_CURSOR = 2;
+
     /**
      * Tạo 1 playlist adapter
      *
      * @param context
-     * @param worker Looper điều khiên worker thread (để query)
-     * */
-    public PlaylistAdapter(Context context, Looper worker){
-        super(context,null,false);
+     * @param worker  Looper điều khiên worker thread (để query)
+     */
+    public PlaylistAdapter(Context context, Looper worker) {
+        super(context, null, false);
 
-        mContext=context;
-        mWorkerHandler=new Handler(worker,this);
-        mUiHandler=new Handler(this);
-        mInflater=(LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mContext = context;
+        mWorkerHandler = new Handler(worker, this);
+        mUiHandler = new Handler(this);
+        mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
+
     /**
      * Set the id of the backing playlist.
      *
      * @param id mediastore id của playlist .
      */
-    public void setPlaylistId(long id)
-    {
+    public void setPlaylistId(long id) {
         mPlaylistId = id;
         mWorkerHandler.sendEmptyMessage(MSG_RUN_QUERY);
     }
@@ -76,9 +77,9 @@ public class PlaylistAdapter extends CursorAdapter implements Handler.Callback{
      * vào fía bên trái view và 1 nút delete bên fải view
      *
      * @param editable True để enable edit mode
-     * */
-    public void setEditable(boolean editable){
-        mEditable=editable;
+     */
+    public void setEditable(boolean editable) {
+        mEditable = editable;
         notifyDataSetInvalidated();
     }
 
@@ -91,7 +92,7 @@ public class PlaylistAdapter extends CursorAdapter implements Handler.Callback{
                 break;
             }
             case MSG_UPDATE_CURSOR:
-                changeCursor((Cursor)message.obj);
+                changeCursor((Cursor) message.obj);
                 break;
             default:
                 return false;
@@ -102,12 +103,12 @@ public class PlaylistAdapter extends CursorAdapter implements Handler.Callback{
 
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
-        return mInflater.inflate(R.layout.draggable_row,parent,false);
+        return mInflater.inflate(R.layout.draggable_row, parent, false);
     }
 
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
-        DraggableRow dview = (DraggableRow)view;
+        DraggableRow dview = (DraggableRow) view;
         dview.setupLayout(DraggableRow.LAYOUT_DRAGGABLE);
         dview.showDragger(mEditable);
 
@@ -123,11 +124,64 @@ public class PlaylistAdapter extends CursorAdapter implements Handler.Callback{
      * @param resolver A ContentResolver to query with.
      * @return The resulting cursor.
      */
-    private Cursor runQuery(ContentResolver resolver)
-    {
+    private Cursor runQuery(ContentResolver resolver) {
         QueryTask query = MediaUtils.buildPlaylistQuery(mPlaylistId, PROJECTION, null);
         return query.runQuery(resolver);
     }
 
+    /**
+     * Dịch chuyển(lên,xuống) một bài hát trong playlist
+     *
+     * @param from vị trí ban đầu của bài hát
+     * @param to   vị trí đích của bài hát
+     */
+    public void moveSong(int from, int to) {
+        if (from == to)
+            return;
+
+        int count = getCount();
+
+        if (to >= count || from >= count)
+            // có thể xảy ra khi adapter thay đổi trong khi drag
+            return;
+
+        ContentResolver resolver = mContext.getContentResolver();
+        Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", mPlaylistId);
+        Cursor cursor = getCursor();
+
+        int start = Math.min(from, to);
+        int end = Math.max(from, to);
+
+        long order;
+        if (start == 0)
+            order = 0;
+        else {
+            cursor.moveToPosition(start - 1);
+            order = cursor.getLong(5) + 1;
+        }
+
+        cursor.moveToPosition(end);
+        long endOrder = cursor.getLong(5);
+
+        // xóa những dòng định thay thế
+        String[] args = new String[]{
+                Long.toString(order), Long.toString(endOrder)
+        };
+        resolver.delete(uri, "play_order >= ? AND play_order <= ?", args);
+
+        // tạo những dòng mới
+        ContentValues[] values = new ContentValues[end - start + 1];
+        for (int i = start, j = 0; i <= end; ++i, ++j, ++order) {
+            cursor.moveToPosition(i == to ? from : i > to ? i - 1 : i + 1);
+            ContentValues value=new ContentValues(2);
+            value.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER,Long.valueOf(order));
+            value.put(MediaStore.Audio.Playlists.Members.AUDIO_ID,cursor.getLong(3));
+            values[j]=value;
+        }
+
+        // chèn nhũng dòng mới
+        resolver.bulkInsert(uri,values);
+        changeCursor(runQuery(resolver));
+    }
 
 }
