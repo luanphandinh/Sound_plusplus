@@ -1,6 +1,7 @@
 package chongxuocmanhinh.sound_plusplus;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -115,15 +116,47 @@ public class PlaylistActivity extends Activity
         super.onDestroy();
     }
 
-
-    @Override
-    public void onClick(DialogInterface dialogInterface, int i) {
-
+    /**
+     * Enable or disable edit mode, cho phép sắp xép, xóa các bài hát
+     *
+     * @param editing True để enable edit mode
+     * */
+    public void setEditing(boolean editing){
+        mListView.setDragEnabled(editing);
+        mAdapter.setEditable(editing);
     }
 
+    /**
+     * User click vào button edit: hiện edit mode, cho phép kéo thả sắp xếp song
+     * or click button delete, show lên 1 cái alert delete or not
+     * */
     @Override
     public void onClick(View view) {
+        switch(view.getId()){
+            case R.id.edit:
+                setEditing(!mEditing);
+                break;
+            case R.id.delete:
+                AlertDialog.Builder builder=new AlertDialog.Builder(this);
+                String message=getResources().getString(R.string.delete_playlist,mPlaylistName);
+                builder.setMessage(message);
+                builder.setPositiveButton(R.string.delete,this);
+                builder.setNegativeButton(android.R.string.cancel,this);
+                builder.show();
+                break;
+        }
+    }
 
+    /**
+     * Khi user ấn nút delete trong dialog delete, xóa playlist dc chọn
+     * */
+    @Override
+    public void onClick(DialogInterface dialog, int which) {
+        if(which==DialogInterface.BUTTON_POSITIVE){
+            Playlist.deletePlaylist(getContentResolver(),mPlaylistId);
+            finish();
+        }
+        dialog.dismiss();
     }
 
     /**

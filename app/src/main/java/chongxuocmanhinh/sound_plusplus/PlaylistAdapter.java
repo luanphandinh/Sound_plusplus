@@ -63,12 +63,23 @@ public class PlaylistAdapter extends CursorAdapter implements Handler.Callback{
     /**
      * Set the id of the backing playlist.
      *
-     * @param id The MediaStore id of a playlist.
+     * @param id mediastore id của playlist .
      */
     public void setPlaylistId(long id)
     {
         mPlaylistId = id;
         mWorkerHandler.sendEmptyMessage(MSG_RUN_QUERY);
+    }
+
+    /**
+     * Enable hoặc disable edit mode. Edit mde thêm một drag grabber
+     * vào fía bên trái view và 1 nút delete bên fải view
+     *
+     * @param editable True để enable edit mode
+     * */
+    public void setEditable(boolean editable){
+        mEditable=editable;
+        notifyDataSetInvalidated();
     }
 
     @Override
