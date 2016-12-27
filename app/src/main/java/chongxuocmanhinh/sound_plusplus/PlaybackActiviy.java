@@ -1,8 +1,11 @@
 package chongxuocmanhinh.sound_plusplus;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
+import android.database.Cursor;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -10,6 +13,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
@@ -17,6 +21,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.Toast;
+
+import java.io.File;
+import java.util.ArrayList;
 
 /**
  * Created by L on 07/11/2016.
@@ -129,10 +136,145 @@ public abstract class PlaybackActiviy extends Activity
         }
     }
 
+    /************created by lordhung*****************/
+    /**
+     * Giống MSG_ADD_TO_PLAYLIST nhưng tạo playlist mới ngay lập tức (hoặc overwrite list đã có)
+    */
+    protected static final int MSG_CREATE_PLAYLIST = 0;
+    /**
+     * Gọi renamePlaylist với result từ NewPlaylistDialog lưu trong obj
+     */
+    protected static final int MSG_RENAME_PLAYLIST = 1;
+    /**
+     * Gọi addToPlaylist với data từ playlisttask obj
+     */
+    protected static final int MSG_ADD_TO_PLAYLIST = 2;
+    /**
+     * Gọi removeFromPlaylist với data từ playlisttask object
+     */
+    protected static final int MSG_REMOVE_FROM_PLAYLIST = 3;
+    /**
+     * Remove 1 mdeia object
+     */
+    protected static final int MSG_DELETE = 4;
+    /**
+     * Lưu queue hiện tại như 1 playlist
+     */
+    protected static final int MSG_ADD_QUEUE_TO_PLAYLIST = 5;
+    /**
+     * Thông báo đã thay đổi member nào đó trong playlist
+     */
+    protected static final int MSG_NOTIFY_PLAYLIST_CHANGED = 6;
     @Override
-    public boolean handleMessage(Message msg) {
-        return false;
+    public boolean handleMessage(Message message) {
+        switch (message.what) {
+            case MSG_CREATE_PLAYLIST: {
+                PlaylistTask playlistTask = (PlaylistTask)message.obj;
+                int nextAction = message.arg1;
+                long playlistId = Playlist.createPlaylist(getContentResolver(), playlistTask.name);
+                playlistTask.playlistId = playlistId;
+                mHandler.sendMessage(mHandler.obtainMessage(nextAction, playlistTask));
+                break;
+            }
+            case MSG_ADD_TO_PLAYLIST: {
+                PlaylistTask playlistTask = (PlaylistTask)message.obj;
+                addToPlaylist(playlistTask);
+                break;
+            }
+            case MSG_ADD_QUEUE_TO_PLAYLIST: {
+                PlaylistTask playlistTask = (PlaylistTask)message.obj;
+                playlistTask.audioIds = new ArrayList<Long>();
+                Song song;
+                PlaybackService service = PlaybackService.get(this);
+                for (int i=0; ; i++) {
+                    song = service.getSongByQueuePosition(i);
+                    if (song == null)
+                        break;
+                    playlistTask.audioIds.add(song.id);
+                }
+                addToPlaylist(playlistTask);
+                break;
+            }
+            case MSG_REMOVE_FROM_PLAYLIST: {
+                PlaylistTask playlistTask = (PlaylistTask)message.obj;
+                removeFromPlaylist(playlistTask);
+                break;
+            }
+            case MSG_RENAME_PLAYLIST: {
+                PlaylistTask playlistTask = (PlaylistTask)message.obj;
+                Playlist.renamePlaylist(getContentResolver(), playlistTask.playlistId, playlistTask.name);
+                break;
+            }
+            case MSG_DELETE: {
+                break;
+            }
+            case MSG_NOTIFY_PLAYLIST_CHANGED: {
+                // super class sẽ hiện thực  nó
+                break;
+            }
+            default:
+                return false;
+        }
+        return true;
     }
+    /**
+     * Thêm 1 tập hợp các bài hát thể hiện trong playlistTask vào 1 playlist. Hiển thị
+     * một Toast thông báo nếu thành công
+     *
+     * @param playlistTask PlaylistTask chờ để thực thi
+     */
+    protected void addToPlaylist(PlaylistTask playlistTask) {
+        int count = 0;
+
+        if (playlistTask.query != null) {
+            count += Playlist.addToPlaylist(getContentResolver(), playlistTask.playlistId, playlistTask.query);
+        }
+
+        if (playlistTask.audioIds != null) {
+            count += Playlist.addToPlaylist(getContentResolver(), playlistTask.playlistId, playlistTask.audioIds);
+        }
+
+        String message = getResources().getQuantityString(R.plurals.added_to_playlist, count, count, playlistTask.name);
+        showToast(message, Toast.LENGTH_SHORT);
+        mHandler.sendEmptyMessage(MSG_NOTIFY_PLAYLIST_CHANGED);
+    }
+
+    /**
+     * Xóa 1 tập hợp các bài hát thể hiện trong playlistTask vào 1 playlist. Hiển thị
+     * một Toast thông báo nếu thành công
+     *
+     * @param playlistTask PlaylistTask chờ để thực thi
+     */
+    private void removeFromPlaylist(PlaylistTask playlistTask) {
+        int count = 0;
+
+        if (playlistTask.query != null) {
+            throw new IllegalArgumentException("Delete by query is not implemented yet");
+        }
+
+        if (playlistTask.audioIds != null) {
+            count += Playlist.removeFromPlaylist(getContentResolver(), playlistTask.playlistId, playlistTask.audioIds);
+        }
+
+        String message = getResources().getQuantityString(R.plurals.removed_from_playlist, count, count, playlistTask.name);
+        showToast(message, Toast.LENGTH_SHORT);
+        mHandler.sendEmptyMessage(MSG_NOTIFY_PLAYLIST_CHANGED);
+    }
+
+    /**
+     * Tạo và hiển thị message toast
+     */
+    private void showToast(final String message, final int duration) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), message, duration).show();
+            }
+        });
+    }
+
+    /********************************************************/
+
 
     protected void bindControlButtons(){
         View previousButton = findViewById(R.id.previous);

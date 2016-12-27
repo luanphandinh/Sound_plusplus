@@ -4,10 +4,12 @@ import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
+import java.io.File;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -412,4 +414,70 @@ public class MediaUtils {
         }
         return 0;
     }
+
+    /********************************created by lordhung************************************************/
+    /**
+     * Thêm dấu / vào path nếu path đó trỏ tới 1 directory đã tồn t
+     */
+    private static String addDirEndSlash(String path) {
+        if(path.length() > 0 && path.charAt(path.length()-1) != '/') {
+            if( (new File(path)).isDirectory() ) {
+                path += "/";
+            }
+        }
+        return path;
+    }
+    /**
+     * This is an ugly hack: The tries to 'guess' if given path
+     * is also accessible using a fuse mount
+     */
+    private static String sanitizeMediaPath(String path) {
+
+        String exPath  = Environment.getExternalStorageDirectory().getAbsolutePath();
+        File exStorage = new File(exPath+"/Android");
+        long exLastmod = exStorage.lastModified();
+
+        if(exLastmod > 0 && path != null) {
+            String pfx = path;
+            while(true) {
+                if((new File(pfx+"/Android")).lastModified() == exLastmod) {
+                    String guessPath = exPath + path.substring(pfx.length());
+                    if( (new File(guessPath)).exists() ) {
+                        path = guessPath;
+                        break;
+                    }
+                }
+
+                pfx = (new File(pfx)).getParent();
+                if(pfx == null)
+                    break; /* hit root */
+            }
+        }
+
+        return path;
+    }
+    /**
+     * Build 1 query chứa tất cả media theo path đã cho
+     *
+     * @param path The path, e.g. /mnt/sdcard/music/
+     * @param projection The columns to query
+     * @return The initialized query.
+     */
+    public static QueryTask buildFileQuery(String path, String[] projection)
+    {
+		/* make sure that the path is:
+		   -> fixed-up to point to the real mountpoint if user browsed to the mediadir symlink
+		   -> terminated with a / if it is a directory
+		   -> ended with a % for the LIKE query
+		*/
+        path = addDirEndSlash(sanitizeMediaPath(path)) + "%";
+        final String query = "_data LIKE ? AND "+MediaStore.Audio.Media.IS_MUSIC;
+        String[] qargs = { path };
+
+        Uri media = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        QueryTask result = new QueryTask(media, projection, query, qargs, DEFAULT_SORT);
+        result.type = TYPE_FILE;
+        return result;
+    }
+
 }

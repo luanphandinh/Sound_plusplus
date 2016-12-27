@@ -1,5 +1,6 @@
 package chongxuocmanhinh.sound_plusplus;
 
+import android.content.Intent;
 import android.os.Message;
 import android.text.format.DateUtils;
 import android.util.Log;
@@ -10,6 +11,10 @@ import android.view.View;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import static chongxuocmanhinh.sound_plusplus.LibraryActivity.MSG_ADD_QUEUE_TO_PLAYLIST;
+import static chongxuocmanhinh.sound_plusplus.LibraryActivity.MSG_ADD_TO_PLAYLIST;
+import static chongxuocmanhinh.sound_plusplus.LibraryActivity.MSG_CREATE_PLAYLIST;
+
 /**
  * Class này dùng để quản lý phần sliding view của app
  * có các seekbar và cái button ....
@@ -17,7 +22,8 @@ import android.widget.TextView;
  */
 public class SlidingPlaybackActivity extends PlaybackActiviy
             implements SlidingView.Callback,
-                        SeekBar.OnSeekBarChangeListener
+                        SeekBar.OnSeekBarChangeListener,
+        PlaylistDialog.Callback
 {
 
     /**
@@ -215,10 +221,13 @@ public class SlidingPlaybackActivity extends PlaybackActiviy
         menu.add(0, MENU_HIDE_QUEUE, 20, R.string.hide_queue);
         menu.add(0, MENU_CLEAR_QUEUE, 20, R.string.dequeue_rest);
         menu.add(0, MENU_EMPTY_QUEUE, 20, R.string.empty_the_queue);
+        menu.add(0, MENU_SAVE_QUEUE, 20, R.string.save_as_playlist);
 
         onSlideFullyExpanded(false);
         return true;
     }
+
+    static final int MENU_SAVE_QUEUE = 300;
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -230,11 +239,83 @@ public class SlidingPlaybackActivity extends PlaybackActiviy
             case MENU_HIDE_QUEUE:
                 mSlidingView.hideSlide();
                 break;
+            case MENU_SAVE_QUEUE:
+                PlaylistDialog dialog = new PlaylistDialog(this, null, null);
+                dialog.show(getFragmentManager(), "PlaylistDialog");
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
         return true;
     }
 
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        if (item.getGroupId() != 0)
+            return super.onContextItemSelected(item);
 
+        final Intent intent = item.getIntent();
+        switch (item.getItemId()) {
+            case CTX_MENU_ADD_TO_PLAYLIST: {
+                PlaylistDialog dialog = new PlaylistDialog(this, intent, null);
+                dialog.show(getFragmentManager(), "PlaylistDialog");
+                break;
+            }
+            default:
+                throw new IllegalArgumentException("Unhandled item id");
+        }
+        return true;
+    }
+
+
+    /********************************************************/
+    /**
+     * Builds a media query based off the data stored in the given intent.
+     *
+     * @param intent An intent created with
+     * {@link LibraryAdapter#createData(View)}.
+     * @param empty If true, use the empty projection (only query id).
+     * @param allSource use this mediaAdapter to queue all hold items
+     */
+    protected QueryTask buildQueryFromIntent(Intent intent, boolean empty, MediaAdapter allSource)
+    {
+        int type = intent.getIntExtra("type", MediaUtils.TYPE_INVALID);
+
+        String[] projection;
+        if (type == MediaUtils.TYPE_PLAYLIST)
+            projection = empty ? Song.EMPTY_PLAYLIST_PROJECTION : Song.FILLED_PLAYLIST_PROJECTION;
+        else
+            projection = empty ? Song.EMPTY_PROJECTION : Song.FILLED_PROJECTION;
+
+        long id = intent.getLongExtra("id", LibraryAdapter.INVALID_ID);
+        QueryTask query;
+        if (type == MediaUtils.TYPE_FILE) {
+            query = MediaUtils.buildFileQuery(intent.getStringExtra("file"), projection);
+        } else if (allSource != null) {
+            query = allSource.buildSongQuery(projection);
+            query.data = id;
+        } else {
+            query = MediaUtils.buildQuery(type, id, projection, null);
+        }
+
+        return query;
+    }
+
+    public void updatePlaylistFromPlaylistDialog(PlaylistDialog.Data data) {
+        PlaylistTask playlistTask = new PlaylistTask(data.id, data.name);
+        int action = -1;
+
+        if (data.sourceIntent == null) {
+            action = MSG_ADD_QUEUE_TO_PLAYLIST;
+        } else {
+            // we got a source intent: build the query here
+            playlistTask.query = buildQueryFromIntent(data.sourceIntent, true, data.allSource);
+            action = MSG_ADD_TO_PLAYLIST;
+        }
+        if (playlistTask.playlistId < 0) {
+            mHandler.sendMessage(mHandler.obtainMessage(MSG_CREATE_PLAYLIST, action, 0, playlistTask));
+        } else {
+            mHandler.sendMessage(mHandler.obtainMessage(action, playlistTask));
+        }
+    }
 }

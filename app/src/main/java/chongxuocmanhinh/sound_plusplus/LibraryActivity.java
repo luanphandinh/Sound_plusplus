@@ -128,6 +128,37 @@ public class LibraryActivity extends SlidingPlaybackActivity
 //    private HorizontalScrollView mLimiterScrollView;
 //    private ViewGroup mLimiterViews;
 
+
+    /**
+     * Same as MSG_ADD_TO_PLAYLIST but creates the new playlist on-the-fly (or overwrites an existing list)
+     */
+    protected static final int MSG_CREATE_PLAYLIST = 0;
+    /**
+     * Call renamePlaylist with the results from a NewPlaylistDialog stored in
+     * obj.
+     */
+    protected static final int MSG_RENAME_PLAYLIST = 1;
+    /**
+     * Call addToPlaylist with data from the playlisttask object.
+     */
+    protected static final int MSG_ADD_TO_PLAYLIST = 2;
+    /**
+     * Call removeFromPlaylist with data from the playlisttask object.
+     */
+    protected static final int MSG_REMOVE_FROM_PLAYLIST = 3;
+    /**
+     * Removes a media object
+     */
+    protected static final int MSG_DELETE = 4;
+    /**
+     * Saves the current queue as a playlist
+     */
+    protected static final int MSG_ADD_QUEUE_TO_PLAYLIST = 5;
+    /**
+     * Notification that we changed some playlist members
+     */
+    protected static final int MSG_NOTIFY_PLAYLIST_CHANGED = 6;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("Test", "onCreate: ");
@@ -585,7 +616,27 @@ public class LibraryActivity extends SlidingPlaybackActivity
                 setLimiter(MediaUtils.TYPE_ALBUM, "_id=" + intent.getLongExtra(LibraryAdapter.DATA_ID, LibraryAdapter.INVALID_ID));
                 updateLimiterViews();
                 break;
+            case CTX_MENU_RENAME_PLAYLIST: {
+                final String playlistName = intent.getStringExtra("title");
+                final long playlistId = intent.getLongExtra("id", -1);
+                PlaylistInputDialog dialog = new PlaylistInputDialog(new PlaylistInputDialog.Callback() {
+                    @Override
+                    public void onSuccess(String input) {
+                        PlaylistTask playlistTask = new PlaylistTask(playlistId, input);
+                        mHandler.sendMessage(mHandler.obtainMessage(MSG_RENAME_PLAYLIST, playlistTask));
+                    }
+                }, playlistName, R.string.rename);
+                dialog.show(getFragmentManager(), "RenamePlaylistInputDialog");
+                break;
 
+            }
+            case CTX_MENU_ADD_TO_PLAYLIST:
+                long id = intent.getLongExtra("id", LibraryAdapter.INVALID_ID);
+                PlaylistDialog plDialog = new PlaylistDialog( this,intent,(id==LibraryAdapter.HEADER_ID?(MediaAdapter)mCurrentAdapter:null));
+                plDialog.show(getFragmentManager(), "PlaylistDialog");
+                break;
+            default:
+                return super.onContextItemSelected(item);
         }
 
         return true;
