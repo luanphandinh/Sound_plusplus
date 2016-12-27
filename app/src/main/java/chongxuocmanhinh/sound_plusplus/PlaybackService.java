@@ -4,9 +4,11 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -75,6 +77,9 @@ public class PlaybackService extends Service
     SongTimeLine mSongTimeLine;
 
     private int mPendingSeek;
+    private boolean mHeadsetOnly;
+    private Receiver mReceiver;
+    boolean mHeadsetPause;
     /**
      * tham chiếu tới Playcounts helper class
      */
@@ -263,13 +268,18 @@ public class PlaybackService extends Service
         SharedPreferences settings = getSettings(this);
         //settings.registerOnSharedPreferenceChangeListener(this);
         mNotificationMode = Integer.parseInt(settings.getString(PrefKeys.NOTIFICATION_MODE, PrefDefaults.NOTIFICATION_MODE));
-
+        mHeadsetOnly = settings.getBoolean(PrefKeys.HEADSET_ONLY, PrefDefaults.HEADSET_ONLY);
+        mHeadsetPause = getSettings(this).getBoolean(PrefKeys.HEADSET_PAUSE, PrefDefaults.HEADSET_PAUSE);
         mIgnoreAudioFocusLoss = settings.getBoolean(PrefKeys.IGNORE_AUDIOFOCUS_LOSS, PrefDefaults.IGNORE_AUDIOFOCUS_LOSS);
 
         ///================//
         mRemoteControlClient = new RemoteControl().getClient(this);
         mRemoteControlClient.initializeRemote();
 
+        mReceiver = new Receiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+        registerReceiver(mReceiver, filter);
 
         mLooper = thread.getLooper();
         mHandler = new Handler(mLooper, this);
@@ -293,6 +303,8 @@ public class PlaybackService extends Service
         // clear the notification
         stopForeground(true);
 
+        enterSleepState();
+
         if (mMediaPlayer != null) {
             mMediaPlayer.release();
             mMediaPlayer = null;
@@ -303,6 +315,12 @@ public class PlaybackService extends Service
             mPreparedMediaPlayer = null;
         }
 
+        try {
+            unregisterReceiver(mReceiver);
+        } catch (IllegalArgumentException e) {
+            // we haven't registered the receiver yet
+        }
+        
         if (mRemoteControlClient != null)
             mRemoteControlClient.unregisterRemote();
 
@@ -327,6 +345,29 @@ public class PlaybackService extends Service
         }
         Log.d("TestPlay", "Return Service");
         return sInstance;
+    }
+
+    /**
+     * Trả về true nếu audio được play qua tai phone
+     */
+    @SuppressWarnings("deprecation")
+    private boolean isSpeakerOn()
+    {
+        // Android seems very intent on making this difficult to detect. In
+        // Android 1.5, this worked great with AudioManager.getRouting(),
+        // which definitively answered if audio would play through the speakers.
+        // Android 2.0 deprecated this method and made it no longer function.
+        // So this hacky alternative was created. But with Android 4.0,
+        // isWiredHeadsetOn() was deprecated, though it still works. But for
+        // how much longer?
+        //
+        // I'd like to remove this feature so I can avoid fighting Android to
+        // keep it working, but some users seem to really like it. I think the
+        // best solution to this problem is for Android to have separate media
+        // volumes for speaker, headphones, etc. That way the speakers can be
+        // muted system-wide. There is not much I can do about that here,
+        // though.
+        return !mAudioManager.isWiredHeadsetOn() && !mAudioManager.isBluetoothA2dpOn() && !mAudioManager.isBluetoothScoOn();
     }
 
 
@@ -487,7 +528,7 @@ public class PlaybackService extends Service
      * @return
      */
     private int updateState(int state) {
-        if ((state & (FLAG_NO_MEDIA | FLAG_ERROR | FLAG_EMPTY_QUEUE)) != 0)
+        if ((state & (FLAG_NO_MEDIA | FLAG_ERROR | FLAG_EMPTY_QUEUE)) != 0 || mHeadsetOnly && isSpeakerOn())
             state &= ~FLAG_PLAYING;
 
         int oldState = mState;
@@ -501,6 +542,10 @@ public class PlaybackService extends Service
         return state;
     }
 
+    /**
+     * Defer entering deep sleep for this time (in ms).
+     */
+    private static final int SLEEP_STATE_DELAY = 60000;
 
     private void processNewState(int oldState, int state) {
         Log.d("TestPlayPause", "processNewState()");
@@ -520,6 +565,7 @@ public class PlaybackService extends Service
                     unsetFlag(FLAG_PLAYING);
                 }
 
+                mHandler.removeMessages(MSG_ENTER_SLEEP_STATE);
             } else {//Nếu state mới là pause
                 Log.d("TestPlayPause", " mMediaPlayer.pause();");
                 if (mMediaPlayerInitialized)
@@ -532,6 +578,8 @@ public class PlaybackService extends Service
                 boolean removeNotification = (mForceNotificationVisible == false && mNotificationMode != ALWAYS);
                 stopForeground(removeNotification);
                 updateNotification();
+
+                mHandler.sendEmptyMessageDelayed(MSG_ENTER_SLEEP_STATE, SLEEP_STATE_DELAY);
             }
         }
 
@@ -555,6 +603,11 @@ public class PlaybackService extends Service
      * <p/>
      * obj là  QueryTask. arg1 là chế độ add (add mode) (one of SongTimeLine.MODE_*)
      */
+
+    /**
+     * Releases mWakeLock and closes any open AudioFx sessions
+     */
+    private static final int MSG_ENTER_SLEEP_STATE = 1;
     private static final int MSG_QUERY = 2;
     private static final int MSG_BROADCAST_CHANGE = 10;
     private static final int MSG_SAVE_STATE = 12;
@@ -585,7 +638,9 @@ public class PlaybackService extends Service
                 Song song = (Song) msg.obj;
                 boolean played = msg.arg1 == 1;
                 mPlayCounts.countSong(song,played);
-
+            case MSG_ENTER_SLEEP_STATE:
+                enterSleepState();
+                break;
             default:
                 return false;
         }
@@ -661,6 +716,17 @@ public class PlaybackService extends Service
     @Override
     public void positionInfoChanged() {
 
+    }
+
+
+    /**
+     * Khi PlaybackService  sleep / shutdown
+     * Đóng tất cả audiosession
+     */
+    private void enterSleepState(){
+        if(mMediaPlayer != null){
+            saveState(mMediaPlayer.getCurrentPosition());
+        }
     }
 
     /**
@@ -998,6 +1064,19 @@ public class PlaybackService extends Service
         }
 
         return sSettings;
+    }
+
+    private class Receiver extends BroadcastReceiver{
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+
+            if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(action)) {
+                if (mHeadsetPause) {
+                    pause();
+                }
+            }
+        }
     }
 
     private void updateNotification() {
