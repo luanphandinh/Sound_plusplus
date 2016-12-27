@@ -122,6 +122,10 @@ public class PlaylistActivity extends Activity
     public void setEditing(boolean editing){
         mListView.setDragEnabled(editing);
         mAdapter.setEditable(editing);
+        int visible = editing ? View.GONE : View.VISIBLE;
+        mDeleteButton.setVisibility(visible);
+        mEditButton.setText(editing ? R.string.done : R.string.edit);
+        mEditing = editing;
     }
 
     /**
@@ -228,7 +232,8 @@ public class PlaylistActivity extends Activity
     }
 
     /**
-     * hàm này dc gọi khi user select item trong option menu
+     * hàm này dc gọi khi user select item trong option menu,
+     * ở playlist này thì chỉ có nút Back phía trên
      * */
     @Override
     public boolean onOptionsItemSelected(MenuItem item){
