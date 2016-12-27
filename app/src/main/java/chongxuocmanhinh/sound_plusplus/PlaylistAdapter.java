@@ -195,4 +195,6 @@ public class PlaylistAdapter extends CursorAdapter implements Handler.Callback {
         // query lại
         mUiHandler.sendEmptyMessage(MSG_RUN_QUERY);
     }
+
+
 }

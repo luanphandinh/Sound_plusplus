@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -46,27 +47,24 @@ public class PlaylistActivity extends Activity
     private Button mDeleteButton;
 
     /**
-     * The id of the playlist this activity is currently viewing.
+     * id của playlist đang xem.
      */
     private long mPlaylistId;
     /**
-     * If true, then playlists songs can be dragged to reorder.
-     */
-    /**
-     * The name of the playlist this activity is currently viewing.
+     * tên của playlist đang xem .
      */
     private String mPlaylistName;
     /**
-     * If true, then playlists songs can be dragged to reorder.
+     * Nếu true, các bài hát trong playlists có thể dc drag hay sắp xếp lại .
      */
     private boolean mEditing;
 
     /**
-     * The item click action specified in the preferences.
+     * Click action của item xác định trong preferences.
      */
     private int mDefaultAction;
     /**
-     * The last action used from the context menu, used to implement
+     * lastaction sử dụng từ context menu , dùng để implement
      * LAST_USED_ACTION action.
      */
     private int mLastAction = LibraryActivity.ACTION_PLAY;
@@ -228,4 +226,58 @@ public class PlaylistActivity extends Activity
     public void remove(int position) {
         mAdapter.removeSong(position);
     }
+
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item){
+//        if(item.getItemId()==android.R.id.home){
+//            finish();
+//            return true;
+//        }
+//        else
+//            return super.onOptionsItemSelected(item);
+//    }
+
+    /*******************CONTEXTMENU*************************/
+    /**
+     * các menu action tương ứng với action trong LibraryActivity
+     * */
+    private static final int MENU_PLAY = LibraryActivity.ACTION_PLAY;
+    private static final int MENU_PLAY_ALL = LibraryActivity.ACTION_PLAY_ALL;
+    private static final int MENU_ENQUEUE = LibraryActivity.ACTION_ENQUEUE;
+    private static final int MENU_ENQUEUE_ALL = LibraryActivity.ACTION_ENQUEUE_ALL;
+    private static final int MENU_ENQUEUE_AS_NEXT = LibraryActivity.ACTION_ENQUEUE_AS_NEXT;
+    private static final int MENU_REMOVE = -1;
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu,View listView,ContextMenu.ContextMenuInfo absInfo){
+        AdapterView.AdapterContextMenuInfo info= (AdapterView.AdapterContextMenuInfo) absInfo;
+        Intent intent=new Intent();
+        intent.putExtra("id",info.id);
+        intent.putExtra("position",info.position);
+        intent.putExtra("audioId", (Long) info.targetView.findViewById(R.id.text).getTag());
+
+        // add action vào menu
+        menu.add(0, MENU_PLAY, 0, R.string.play).setIntent(intent);
+        menu.add(0, MENU_PLAY_ALL, 0, R.string.play_all).setIntent(intent);
+        menu.add(0, MENU_ENQUEUE_AS_NEXT, 0, R.string.enqueue_as_next).setIntent(intent);
+        menu.add(0, MENU_ENQUEUE, 0, R.string.enqueue).setIntent(intent);
+        menu.add(0, MENU_ENQUEUE_ALL, 0, R.string.enqueue_all).setIntent(intent);
+        menu.add(0, MENU_REMOVE, 0, R.string.remove).setIntent(intent);
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item){
+        int itemId=item.getItemId();
+        Intent intent=item.getIntent();
+        int pos=intent.getIntExtra("position",-1);
+
+        if(itemId==MENU_REMOVE)
+            mAdapter.removeSong(pos-mListView.getHeaderViewsCount());
+        else
+            performAction(itemId,pos,intent.getLongExtra("audioId",-1));
+
+        return true;
+    }
+    /****************************************************/
+
 }
