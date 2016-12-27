@@ -220,9 +220,12 @@ public class PlaylistActivity extends Activity
     public void drop(int from, int to) {
         mAdapter.moveSong(from,to);
     }
-
+    /**
+     * hàm này dc gọi từ adapter listview nếu user fling bài hát về fía trái, sẽ xóa bài đó
+     * @param position vị trí của bài hát cần xóa
+     * */
     @Override
-    public void remove(int which) {
-
+    public void remove(int position) {
+        mAdapter.removeSong(position);
     }
 }

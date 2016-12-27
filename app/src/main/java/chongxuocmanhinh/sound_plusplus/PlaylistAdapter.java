@@ -184,4 +184,15 @@ public class PlaylistAdapter extends CursorAdapter implements Handler.Callback {
         changeCursor(runQuery(resolver));
     }
 
+    /**
+     * Khi user fling bài hát về phía trái -> xóa bài đó, update lại view
+     * */
+    public void removeSong(int position){
+        ContentResolver resolver=mContext.getContentResolver();
+        Uri uri=MediaStore.Audio.Playlists.Members.getContentUri("external",mPlaylistId);
+        // xóa song
+        resolver.delete(ContentUris.withAppendedId(uri,getItemId(position)),null,null);
+        // query lại
+        mUiHandler.sendEmptyMessage(MSG_RUN_QUERY);
+    }
 }
