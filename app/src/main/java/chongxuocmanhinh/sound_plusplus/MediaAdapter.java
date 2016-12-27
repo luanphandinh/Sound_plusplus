@@ -506,7 +506,7 @@ public class MediaAdapter extends BaseAdapter
         Cursor  cursor = mCursor;
         cursor.moveToPosition(position);
         holder.id = cursor.getLong(0);
-
+        long cacheId = cursor.getLong(1);
         //Chủ yếu là cho song list với id(0),covercahce(1),title(2),artist(3),album(4)
         if(mProjection.length >= 5){
             //Lấy cái title với cái artist ra
@@ -532,6 +532,7 @@ public class MediaAdapter extends BaseAdapter
             holder.title = title;
         }
 
+        row.getCoverView().setCover(mCoverCacheType, cacheId, holder.title);
         //inflate thằng coverview sau
         return row;
     }

@@ -5,8 +5,10 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.PaintDrawable;
 import android.net.Uri;
@@ -439,11 +441,43 @@ public class LibraryActivity extends SlidingPlaybackActivity
         }
     }
     //=======================================Handler.Callback==============================//
+    /**
+     * Updates mCover sử dụng background thread
+     */
+    private static final int MSG_UPDATE_COVER = 41;
     @Override
     public boolean handleMessage(Message msg) {
-        return super.handleMessage(msg);
+        switch (msg.what) {
+            case MSG_UPDATE_COVER: {
+                Bitmap cover = null;
+                Song song = (Song)msg.obj;
+                if (song != null) {
+                    cover = song.getSmallCover(this);
+                }
+                // Dispatch view update to UI thread
+                updateCover(cover);
+                break;
+            }
+            default:
+                return super.handleMessage(msg);
+        }
+
+        return true;
     }
 
+    /**
+     * Updates mCover với bitmap mới, chạy trên UI thread
+     *
+     * @param cover the cover to set, will use a fallback drawable if null
+     */
+    private void updateCover(final Bitmap cover) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mBottomBarControls.setCover(cover);
+            }
+        });
+    }
 
     public void onPageChanged(int position, LibraryAdapter adapter)
     {
@@ -719,6 +753,9 @@ public class LibraryActivity extends SlidingPlaybackActivity
     protected void onSongChange(Song song) {
         super.onSongChange(song);
         mBottomBarControls.setSong(song);
+        if (song != null) {
+            mHandler.sendMessage(mHandler.obtainMessage(MSG_UPDATE_COVER, song));
+        }
     }
 
     @Override

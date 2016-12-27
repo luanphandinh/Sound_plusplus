@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Parcelable;
@@ -233,6 +234,17 @@ public class BottomBarControls extends LinearLayout
         return button;
     }
 
+    /**
+     * Updates cover image của view
+     *
+     * @param cover the bitmap to display. Will use a placeholder image if cover is null
+     */
+    public void setCover(Bitmap cover) {
+        if (cover == null)
+            mCover.setImageResource(R.drawable.fallback_cover);
+        else
+            mCover.setImageBitmap(cover);
+    }
 
     /**
      * chuyển dp sang pixels

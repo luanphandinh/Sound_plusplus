@@ -12,14 +12,14 @@
         android:layout_height="@dimen/row_normal_height"
         android:background="#00ff00" />
 
-    <!--<ch.teamuit.android.soundplusplus.LazyCoverView-->
-    <!--android:id="@+id/cover"-->
-    <!--android:scaleType="centerCrop"-->
-    <!--android:layout_width="@dimen/cover_size"-->
-    <!--android:layout_height="@dimen/cover_size"-->
-    <!--android:layout_marginLeft="@dimen/cover_padding_with_pmark"-->
-    <!--android:layout_gravity="center_vertical"-->
-    <!--android:visibility="gone" />-->
+    <chongxuocmanhinh.sound_plusplus.LazyCoverView
+        android:id="@+id/cover"
+        android:scaleType="centerCrop"
+        android:layout_width="@dimen/cover_size"
+        android:layout_height="@dimen/cover_size"
+        android:layout_marginLeft="@dimen/cover_padding_with_pmark"
+        android:layout_gravity="center_vertical"
+        android:visibility="gone" />
     <TextView
         android:id="@+id/text"
         android:maxLines="2"

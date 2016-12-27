@@ -11,5 +11,7 @@ public class PrefDefaults {
     public static final boolean HEADSET_ONLY = false;
     public static final boolean HEADSET_PAUSE = true;
     public static final String  NOTIFICATION_ACTION = "0";
-
+    public static final boolean COVERLOADER_ANDROID = true;
+    public static final boolean COVERLOADER_SOUNDPLUSPLUS = true;
+    public static final boolean COVERLOADER_SHADOW = true;
 }

@@ -480,4 +480,25 @@ public class MediaUtils {
         return result;
     }
 
+    /**
+     * Returns the first matching song (or NULL) of given type + id combination
+     *
+     * @param resolver A ContentResolver to use.
+     * @param type The MediaTye to query
+     * @param id The id of given type to query
+     */
+    public static Song getSongByTypeId(ContentResolver resolver, int type, long id) {
+        Song song = new Song(-1);
+        QueryTask query = buildQuery(type, id, Song.FILLED_PROJECTION, null);
+        Cursor cursor = query.runQuery(resolver);
+        if (cursor != null) {
+            if (cursor.getCount() > 0) {
+                cursor.moveToPosition(0);
+                song.populate(cursor);
+            }
+            cursor.close();
+        }
+        return song.isFilled() ? song : null;
+    }
+
 }

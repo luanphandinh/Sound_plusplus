@@ -55,7 +55,7 @@ public class ShowQueueAdapter extends ArrayAdapter<Song>{
             sb.append(song.album+", "+song.artist);
             sb.setSpan(new ForegroundColorSpan(Color.GRAY), song.title.length() + 1, sb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             row.getTextView().setText(sb);
-            //row.getCoverView().setCover(MediaUtils.TYPE_ALBUM, song.albumId, null);
+            row.getCoverView().setCover(MediaUtils.TYPE_ALBUM, song.albumId, null);
         }
 
         row.highlightRow(position == mHighlightRow);

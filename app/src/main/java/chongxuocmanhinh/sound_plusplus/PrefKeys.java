@@ -11,5 +11,8 @@ public class PrefKeys {
     public static final String HEADSET_ONLY = "headset_only";
     public static final String HEADSET_PAUSE = "headset_pause";
     public static final String NOTIFICATION_ACTION = "notification_action";
+    public static final String COVERLOADER_ANDROID = "coverloader_android";
+    public static final String COVERLOADER_SOUNDPLUSPLUS = "coverloader_soundplusplus";
+    public static final String COVERLOADER_SHADOW = "coverloader_shadow";
 }
 

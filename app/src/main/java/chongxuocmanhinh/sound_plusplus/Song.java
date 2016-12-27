@@ -28,6 +28,10 @@ public class Song implements Comparable<Song>{
      * Số lượng của cờ
      */
     public static final int FLAG_COUNT  = 2;
+    /**
+     * The cache instance.
+     */
+    private static CoverCache sCoverCache = null;
 
     public static final String[] EMPTY_PROJECTION = {
             MediaStore.Audio.Media._ID,
@@ -184,6 +188,31 @@ public class Song implements Comparable<Song>{
 
     /**
      * Query the large album art for this song
+     * @param context A context to use.
+     * @return The album art or null if no album art could be found
      */
+    public Bitmap getSmallCover(Context context) {
+        return getCoverInternal(context, CoverCache.SIZE_SMALL);
+    }
 
+    /**
+     * Internal implementation of getCover
+     *
+     * @param context A context to use.
+     * @param size The desired cover size
+     * @return The album art or null if no album art could be found
+     */
+    private Bitmap getCoverInternal(Context context, int size) {
+        if (CoverCache.mCoverLoadMode == 0 || id == -1 || (flags & FLAG_NO_COVER) != 0)
+            return null;
+
+        if (sCoverCache == null)
+            sCoverCache = new CoverCache(context.getApplicationContext());
+
+        Bitmap cover = sCoverCache.getCoverFromSong(this, size);
+
+        if (cover == null)
+            flags |= FLAG_NO_COVER;
+        return cover;
+    }
 }

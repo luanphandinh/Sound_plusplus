@@ -36,7 +36,7 @@ public class DraggableRow extends LinearLayout implements Checkable{
     private CheckedTextView mCheckBox;
     private View        mPmark;
     private ImageView   mDragger;
-
+    private LazyCoverView mCoverView;
     /**
      * Layout types
      *  Mỗi loại layout sẽ có cách hiển thị row khác nhau
@@ -53,6 +53,7 @@ public class DraggableRow extends LinearLayout implements Checkable{
         mTextView = (TextView) this.findViewById(R.id.text);
         mPmark = this.findViewById(R.id.pmark);
         mDragger = (ImageView) this.findViewById(R.id.dragger);
+        mCoverView = (LazyCoverView)this.findViewById(R.id.cover);
         super.onFinishInflate();
     }
 
@@ -71,10 +72,12 @@ public class DraggableRow extends LinearLayout implements Checkable{
                     break;
                 case LAYOUT_DRAGGABLE:
                     highlightRow(false);
+                    mCoverView.setVisibility(View.VISIBLE);
                     showDragger(true);
                     break;
                 case LAYOUT_LISTVIEW:
                     highlightRow(false);
+                    mCoverView.setVisibility(View.VISIBLE);
                     mDragger.setImageResource(R.drawable.arrow);
                     break;
                 case LAYOUT_TEXTONLY:
@@ -135,6 +138,11 @@ public class DraggableRow extends LinearLayout implements Checkable{
         return mTextView;
     }
 
-
+    /**
+     * Trả về coverview
+     */
+    public LazyCoverView getCoverView() {
+        return mCoverView;
+    }
 
 }
