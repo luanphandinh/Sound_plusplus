@@ -10,5 +10,6 @@ public class PrefDefaults {
     public static final String  DEFAULT_PLAYLIST_ACTION = "0";
     public static final boolean HEADSET_ONLY = false;
     public static final boolean HEADSET_PAUSE = true;
+    public static final String  NOTIFICATION_ACTION = "0";
 
 }

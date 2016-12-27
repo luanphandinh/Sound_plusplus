@@ -1,5 +1,6 @@
 package chongxuocmanhinh.sound_plusplus;
 
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -241,6 +242,19 @@ public class PlaybackService extends Service
      * Chế độ của notification,1 trong 3 chế độ ở trên
      */
     private int mNotificationMode;
+
+    /**
+     * Notification click action: mở LaunchActivity.
+     */
+    private static final int NOT_ACTION_MAIN_ACTIVITY = 0;
+    /**
+     * Notification click action: mở to next song.
+     */
+    private static final int NOT_ACTION_NEXT_SONG = 3;
+    /**
+     *
+     */
+    private PendingIntent mNotificationAction;
     /**
      *
      */
@@ -269,6 +283,7 @@ public class PlaybackService extends Service
         //settings.registerOnSharedPreferenceChangeListener(this);
         mNotificationMode = Integer.parseInt(settings.getString(PrefKeys.NOTIFICATION_MODE, PrefDefaults.NOTIFICATION_MODE));
         mHeadsetOnly = settings.getBoolean(PrefKeys.HEADSET_ONLY, PrefDefaults.HEADSET_ONLY);
+        mNotificationAction = createNotificationAction(settings);
         mHeadsetPause = getSettings(this).getBoolean(PrefKeys.HEADSET_PAUSE, PrefDefaults.HEADSET_PAUSE);
         mIgnoreAudioFocusLoss = settings.getBoolean(PrefKeys.IGNORE_AUDIOFOCUS_LOSS, PrefDefaults.IGNORE_AUDIOFOCUS_LOSS);
 
@@ -1089,6 +1104,29 @@ public class PlaybackService extends Service
 
     }
 
+    /**
+     * Tạo pendingIntent cho notification
+     * @param prefs
+     * @return
+     */
+    public PendingIntent createNotificationAction(SharedPreferences prefs){
+        switch (Integer.parseInt(prefs.getString(PrefKeys.NOTIFICATION_ACTION,PrefDefaults.NOTIFICATION_ACTION))){
+            case NOT_ACTION_NEXT_SONG: {
+                Intent intent = new Intent(this, PlaybackService.class);
+                intent.setAction(PlaybackService.ACTION_NEXT_SONG_AUTOPLAY);
+                return PendingIntent.getService(this, 0, intent, 0);
+            }
+            default:
+                Log.w("VanillaMusic", "Unknown value for notification_action. Defaulting to 0.");
+            case NOT_ACTION_MAIN_ACTIVITY:{
+                Intent intent = new Intent(this, LibraryActivity.class);
+                intent.setAction(Intent.ACTION_MAIN);
+                return PendingIntent.getActivity(this, 0, intent, 0);
+            }
+
+        }
+    }
+
     public Notification createNotification(Song song, int state, int mode) {
         Log.d("NotificationTest", "createNotification");
         boolean playing = (state & FLAG_PLAYING) != 0;
@@ -1151,7 +1189,7 @@ public class PlaybackService extends Service
         notification.contentView = views;
         notification.icon = R.drawable.status_icon;
         notification.flags |= Notification.FLAG_ONGOING_EVENT;
-        //notification.contentIntent = mNotificationAction;
+        notification.contentIntent = mNotificationAction;
         // notification.visibility = Notification.VISIBILITY_PUBLIC;
         Log.d("NotificationTest", "Return notification");
         //Sử dụng expaned view cho android 4.x trở lên

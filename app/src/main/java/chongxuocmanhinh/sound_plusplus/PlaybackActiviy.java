@@ -87,6 +87,14 @@ public abstract class PlaybackActiviy extends Activity
         SharedPreferences prefs = PlaybackService.getSettings(this);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (PlaybackService.hasInstance()) {
+            PlaybackService service = PlaybackService.get(this);
+        }
+    }
+
     /**
      * Cấu hình các thành phần của activity khi mà PlaybackService được khởi tạo và có thể sử dụng
      * để tương tác.

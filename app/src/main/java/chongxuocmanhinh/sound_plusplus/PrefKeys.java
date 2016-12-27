@@ -10,5 +10,6 @@ public class PrefKeys {
     public static final String DEFAULT_PLAYLIST_ACTION = "default_playlist_action";
     public static final String HEADSET_ONLY = "headset_only";
     public static final String HEADSET_PAUSE = "headset_pause";
+    public static final String NOTIFICATION_ACTION = "notification_action";
 }
 
