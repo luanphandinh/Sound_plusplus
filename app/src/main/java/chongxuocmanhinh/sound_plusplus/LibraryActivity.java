@@ -212,6 +212,12 @@ public class LibraryActivity extends SlidingPlaybackActivity
         updateHeaders();
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+    }
+
+
     //=====================Khi pagerAdapter bắt được clickListener thì gọi tới đống này===================//
 
     /**
