@@ -38,7 +38,7 @@ public class SoundPlusPlusTabLayout extends SlidingTabLayout {
 
 	public SoundPlusPlusTabLayout(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
-		//setSelectedIndicatorColors(context.getResources().getColor(ch.teamuit.android.soundplusplus.R.color.tabs_active_indicator));
+		setSelectedIndicatorColors(context.getResources().getColor(chongxuocmanhinh.sound_plusplus.R.color.tabs_active_indicator));
 		setDistributeEvenly(true);
 	}
 
@@ -48,7 +48,7 @@ public class SoundPlusPlusTabLayout extends SlidingTabLayout {
 	@Override
 	protected TextView createDefaultTabView(Context context) {
 		TextView view = super.createDefaultTabView(context);
-		view.setTextColor(getResources().getColorStateList(chongxuocmanhinh.sound_plusplus.R.color.white));
+		view.setTextColor(getResources().getColorStateList(chongxuocmanhinh.sound_plusplus.R.color.tab_text_selector));
 		view.setBackgroundResource(chongxuocmanhinh.sound_plusplus.R.drawable.unbound_ripple_light);
 		view.setMaxLines(1);
 		view.setEllipsize(TextUtils.TruncateAt.END);

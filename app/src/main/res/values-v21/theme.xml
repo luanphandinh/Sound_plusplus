@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- universal styles -->
+	<style name="Universal.PlaybackActionBar" parent="android:Widget.Material.ActionBar">
+		<item name="android:displayOptions">showTitle|homeAsUp</item>
+		<item name="android:background">?tabs_background</item>
+	</style>
+
+</resources>

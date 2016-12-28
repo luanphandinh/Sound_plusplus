@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Build;
@@ -1115,7 +1116,7 @@ public class PlaybackService extends Service
                 return PendingIntent.getService(this, 0, intent, 0);
             }
             default:
-                Log.w("VanillaMusic", "Unknown value for notification_action. Defaulting to 0.");
+                Log.w("SoundPlusPlus", "Unknown value for notification_action. Defaulting to 0.");
             case NOT_ACTION_MAIN_ACTIVITY:{
                 Intent intent = new Intent(this, LibraryActivity.class);
                 intent.setAction(Intent.ACTION_MAIN);
@@ -1134,9 +1135,16 @@ public class PlaybackService extends Service
         //expand views với nhiều chức năng hơn cho các thiết bị API lv cao hơn 16
         RemoteViews expanded = new RemoteViews(getPackageName(), R.layout.notification_expanded);
         Log.d("NotificationTest", "Finish infate layout");
-        /**
-         * Cần implement COVER sau và chỗ này
-         */
+
+        //set Cover
+        Bitmap cover = song.getCover(this);
+        if (cover == null) {
+            views.setImageViewResource(R.id.cover, R.drawable.fallback_cover);
+            expanded.setImageViewResource(R.id.cover, R.drawable.fallback_cover);
+        } else {
+            views.setImageViewBitmap(R.id.cover, cover);
+            expanded.setImageViewBitmap(R.id.cover, cover);
+        }
 
         int playButton = ThemeHelper.getPlayButtonResource(playing);
         views.setImageViewResource(R.id.play_pause, playButton);

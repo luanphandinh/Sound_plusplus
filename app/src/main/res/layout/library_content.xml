@@ -2,7 +2,7 @@
 
 
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto" >
+    xmlns:soundplusplus="http://schemas.android.com/apk/res-auto" >
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/content"
         android:orientation="vertical"
@@ -29,8 +29,7 @@
                 android:id="@+id/limiter_layout"
                 android:orientation="horizontal"
                 android:layout_width="wrap_content"
-                android:layout_height="fill_parent"
-               />
+                android:layout_height="fill_parent" />
         </HorizontalScrollView>
     </LinearLayout>
     <chongxuocmanhinh.sound_plusplus.SlidingView
@@ -39,8 +38,8 @@
         android:layout_height="fill_parent"
         android:layout_gravity="bottom|left"
         android:orientation="horizontal"
-        app:slider_handle_id="@+id/bottombar_controls"
-        app:slider_slave_id="@+id/content">
+        soundplusplus:slider_handle_id="@+id/bottombar_controls"
+        soundplusplus:slider_slave_id="@+id/content">
         <LinearLayout
             android:layout_height="wrap_content"
             android:layout_width="fill_parent"
@@ -54,6 +53,7 @@
             android:layout_height="wrap_content"
             android:layout_width="fill_parent"
             android:layout_gravity="top"
+            android:background="?overlay_background_color"
             android:elevation="2dp"
             android:orientation="horizontal">
             <TextView
