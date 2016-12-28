@@ -83,6 +83,7 @@ public class SlidingPlaybackActivity extends PlaybackActiviy
     protected void onResume() {
         super.onResume();
         mPaused = false;
+        updateElapsedTime();
     }
 
     @Override
@@ -112,10 +113,13 @@ public class SlidingPlaybackActivity extends PlaybackActiviy
      * Cập nhật thanh seek bar theo giây
      */
     private void updateElapsedTime() {
-        if(PlaybackService.hasInstance())
-            Log.d("TestPlay","has Instance");
+        Log.d("TestPlay","updateElapsedTime");
+        if(PlaybackService.hasInstance()) {
+            Log.d("TestPlay", "has Instance");
+            return;
+        }
         long position = PlaybackService.hasInstance() ? PlaybackService.get(this).getPosition() : 0;
-            Log.d("TestPlay","" + PlaybackService.get(this).getPosition());
+
         if (!mSeekBarTracking) {
             long duration = mDuration;
             mSeekBar.setProgress(duration == 0 ? 0 : (int)(1000 * position / duration));

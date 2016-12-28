@@ -97,9 +97,9 @@ public abstract class PlaybackActiviy extends Activity
     @Override
     protected void onResume() {
         super.onResume();
-        if (PlaybackService.hasInstance()) {
-            PlaybackService service = PlaybackService.get(this);
-        }
+//        if (PlaybackService.hasInstance()) {
+//            PlaybackService service = PlaybackService.get(this);
+//        }
     }
 
     /**
