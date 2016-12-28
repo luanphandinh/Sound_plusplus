@@ -113,11 +113,11 @@ public class SlidingPlaybackActivity extends PlaybackActiviy
      * Cập nhật thanh seek bar theo giây
      */
     private void updateElapsedTime() {
-        Log.d("TestPlay","updateElapsedTime");
-        if(PlaybackService.hasInstance()) {
-            Log.d("TestPlay", "has Instance");
-            return;
-        }
+//        Log.d("TestPlay","updateElapsedTime");
+//        if(PlaybackService.hasInstance()) {
+//            Log.d("TestPlay", "has Instance");
+//            return;
+//        }
         long position = PlaybackService.hasInstance() ? PlaybackService.get(this).getPosition() : 0;
 
         if (!mSeekBarTracking) {
