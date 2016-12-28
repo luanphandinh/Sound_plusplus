@@ -11,10 +11,10 @@ public class RemoteControl {
      * Trả về RemoteControl.Client implementation
      */
     public RemoteControl.Client getClient(Context context){
-//        return (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ?
-//                new RemoteControlImplLp(context) :
-          return      new RemoteControlImplICS(context);//Dùng cho android 4.x trở xuống
-//        );
+        return (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ?
+                new RemoteControlImplLp(context) :
+                new RemoteControlImplICS(context)//Dùng cho android 4.x trở xuống
+        );
     }
 
     /**
