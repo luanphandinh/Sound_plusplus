@@ -16,11 +16,11 @@ public class SoundPlusPlusImageButton extends ImageButton {
     private static int mActiveTint;
 
     public SoundPlusPlusImageButton(Context context) {
-        super(context);
+        this(context, null);
     }
 
     public SoundPlusPlusImageButton(Context context, AttributeSet attrs) {
-        super(context, attrs);
+        this(context, attrs, 0);
     }
 
     public SoundPlusPlusImageButton(Context context, AttributeSet attrs, int defStyleAttr) {

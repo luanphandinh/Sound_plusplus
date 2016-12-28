@@ -216,7 +216,8 @@ public class LibraryActivity extends SlidingPlaybackActivity
 
     @Override
     protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
+        Log.d("TestNotificationClicked","onNewItent main");
+        return;
     }
 
 

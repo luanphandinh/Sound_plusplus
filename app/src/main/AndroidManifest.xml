@@ -12,7 +12,8 @@
 
         <activity android:name=".LibraryActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/Library">
+            android:theme="@style/Library"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
