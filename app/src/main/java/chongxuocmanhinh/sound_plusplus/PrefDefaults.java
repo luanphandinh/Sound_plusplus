@@ -14,4 +14,5 @@ public class PrefDefaults {
     public static final boolean COVERLOADER_ANDROID = true;
     public static final boolean COVERLOADER_SOUNDPLUSPLUS = true;
     public static final boolean COVERLOADER_SHADOW = true;
+    public static final boolean COVER_ON_LOCKSCREEN = true;
 }

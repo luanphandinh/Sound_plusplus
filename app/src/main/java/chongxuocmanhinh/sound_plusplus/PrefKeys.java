@@ -14,5 +14,6 @@ public class PrefKeys {
     public static final String COVERLOADER_ANDROID = "coverloader_android";
     public static final String COVERLOADER_SOUNDPLUSPLUS = "coverloader_soundplusplus";
     public static final String COVERLOADER_SHADOW = "coverloader_shadow";
+    public static final String COVER_ON_LOCKSCREEN = "cover_on_lockscreen";
 }
 
