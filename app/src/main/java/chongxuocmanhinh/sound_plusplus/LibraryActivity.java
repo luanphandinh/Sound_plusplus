@@ -114,6 +114,10 @@ public class LibraryActivity extends SlidingPlaybackActivity
      * Khi click vào row:ko làm gì hết.
      */
     public static final int ACTION_DO_NOTHING = 5;
+    /**
+     * Khi click vào row: play nếu đã paused hoặc enqueue nếu đang playing.
+     */
+    public static final int ACTION_PLAY_OR_ENQUEUE = 7;
 
     /**
      * Khi click vào row: đưa row được chọn vào vị trí tiếp theo
@@ -209,7 +213,9 @@ public class LibraryActivity extends SlidingPlaybackActivity
     @Override
     protected void onStart() {
         super.onStart();
-        mDefaultAction = ACTION_EXPAND;
+
+        SharedPreferences settings = PlaybackService.getSettings(this);
+        mDefaultAction = Integer.parseInt(settings.getString(PrefKeys.DEFAULT_ACTION_INT, PrefDefaults.DEFAULT_ACTION_INT));
         mLastActedId = LibraryAdapter.INVALID_ID;
         updateHeaders();
     }
@@ -240,6 +246,8 @@ public class LibraryActivity extends SlidingPlaybackActivity
             if(action == ACTION_EXPAND){
                 //Mặc định thì mình để nó play cái gì mà ko expand được
                 action = ACTION_PLAY;
+            }else if (action == ACTION_PLAY_OR_ENQUEUE) {
+                action = (mState & PlaybackService.FLAG_PLAYING) == 0 ? ACTION_PLAY : ACTION_ENQUEUE;
             }
             pickSongs(rowData,action);
         }
@@ -302,6 +310,8 @@ public class LibraryActivity extends SlidingPlaybackActivity
 
     private void updateHeaders(){
         int action = mDefaultAction;
+        if (action == ACTION_LAST_USED)
+            action = mLastAction;
         boolean isEnqueue = action == ACTION_ENQUEUE || action == ACTION_ENQUEUE_ALL;
         String text = getString(isEnqueue ? R.string.enqueue_all : R.string.play_all);
         mPagerAdapter.setHeaderText(text);

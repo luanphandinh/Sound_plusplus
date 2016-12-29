@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.app.backup.BackupManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -49,7 +50,7 @@ public class PlaybackService extends Service
                  * https://developer.android.com/guide/topics/media-apps/volume-and-earphones.html
                  */
                 , AudioManager.OnAudioFocusChangeListener
-               /// ,SharedPreferences.OnSharedPreferenceChangeListener
+                , SharedPreferences.OnSharedPreferenceChangeListener
 {
     /**
      * Tên của file lưu các trạng thái của service
@@ -247,7 +248,7 @@ public class PlaybackService extends Service
     /**
      * Notification click action: mở to next song.
      */
-    private static final int NOT_ACTION_NEXT_SONG = 3;
+    private static final int NOT_ACTION_NEXT_SONG = 1;
     /**
      *
      */
@@ -277,7 +278,7 @@ public class PlaybackService extends Service
         mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
 
         SharedPreferences settings = getSettings(this);
-        //settings.registerOnSharedPreferenceChangeListener(this);
+        settings.registerOnSharedPreferenceChangeListener(this);
         mNotificationMode = Integer.parseInt(settings.getString(PrefKeys.NOTIFICATION_MODE, PrefDefaults.NOTIFICATION_MODE));
         mHeadsetOnly = settings.getBoolean(PrefKeys.HEADSET_ONLY, PrefDefaults.HEADSET_ONLY);
         mNotificationAction = createNotificationAction(settings);
@@ -1312,10 +1313,65 @@ public class PlaybackService extends Service
         }
     }
 
+    private void loadPreference(String key)
+    {
+        SharedPreferences settings = getSettings(this);
+        if (PrefKeys.HEADSET_PAUSE.equals(key)) {
+            mHeadsetPause = settings.getBoolean(PrefKeys.HEADSET_PAUSE, PrefDefaults.HEADSET_PAUSE);
+        } else if (PrefKeys.NOTIFICATION_ACTION.equals(key)) {
+            mNotificationAction = createNotificationAction(settings);
+            updateNotification();
+        } else if (PrefKeys.NOTIFICATION_MODE.equals(key)){
+            mNotificationMode = Integer.parseInt(settings.getString(PrefKeys.NOTIFICATION_MODE, PrefDefaults.NOTIFICATION_MODE));
+            // This is the only way to remove a notification created by
+            // startForeground(), even if we are not currently in foreground
+            // mode.
+            stopForeground(true);
+            updateNotification();
+        } else if (PrefKeys.COVER_ON_LOCKSCREEN.equals(key)) {
+            mRemoteControlClient.reloadPreference();
+        } else if (PrefKeys.COVERLOADER_ANDROID.equals(key)) {
+            CoverCache.mCoverLoadMode = settings.getBoolean(PrefKeys.COVERLOADER_ANDROID, PrefDefaults.COVERLOADER_ANDROID) ? CoverCache.mCoverLoadMode | CoverCache.COVER_MODE_ANDROID : CoverCache.mCoverLoadMode & ~(CoverCache.COVER_MODE_ANDROID);
+            CoverCache.evictAll();
+        } else if (PrefKeys.COVERLOADER_SOUNDPLUSPLUS.equals(key)) {
+            CoverCache.mCoverLoadMode = settings.getBoolean(PrefKeys.COVERLOADER_SOUNDPLUSPLUS, PrefDefaults.COVERLOADER_SOUNDPLUSPLUS) ? CoverCache.mCoverLoadMode | CoverCache.COVER_MODE_VANILLA : CoverCache.mCoverLoadMode & ~(CoverCache.COVER_MODE_VANILLA);
+            CoverCache.evictAll();
+        } else if (PrefKeys.COVERLOADER_SHADOW.equals(key)) {
+            CoverCache.mCoverLoadMode = settings.getBoolean(PrefKeys.COVERLOADER_SHADOW, PrefDefaults.COVERLOADER_SHADOW) ? CoverCache.mCoverLoadMode | CoverCache.COVER_MODE_SHADOW : CoverCache.mCoverLoadMode & ~(CoverCache.COVER_MODE_SHADOW);
+            CoverCache.evictAll();
+        } else if (PrefKeys.HEADSET_ONLY.equals(key)) {
+            mHeadsetOnly = settings.getBoolean(key, PrefDefaults.HEADSET_ONLY);
+            if (mHeadsetOnly && isSpeakerOn())
+                unsetFlag(FLAG_PLAYING);
+        }
+//        } else if (PrefKeys.ENABLE_SHAKE.equals(key) || PrefKeys.SHAKE_ACTION.equals(key)) {
+//            mShakeAction = settings.getBoolean(PrefKeys.ENABLE_SHAKE, PrefDefaults.ENABLE_SHAKE) ? Action.getAction(settings, PrefKeys.SHAKE_ACTION, PrefDefaults.SHAKE_ACTION) : Action.Nothing;
+//            setupSensor();
+//        } else if (PrefKeys.SHAKE_THRESHOLD.equals(key)) {
+//            mShakeThreshold = settings.getInt(PrefKeys.SHAKE_THRESHOLD, PrefDefaults.SHAKE_THRESHOLD) / 10.0f;
+//        } else if (PrefKeys.ENABLE_TRACK_REPLAYGAIN.equals(key)) {
+//            mReplayGainTrackEnabled = settings.getBoolean(PrefKeys.ENABLE_TRACK_REPLAYGAIN, PrefDefaults.ENABLE_TRACK_REPLAYGAIN);
+//            refreshReplayGainValues();
+//        } else if (PrefKeys.ENABLE_ALBUM_REPLAYGAIN.equals(key)) {
+//            mReplayGainAlbumEnabled = settings.getBoolean(PrefKeys.ENABLE_ALBUM_REPLAYGAIN, PrefDefaults.ENABLE_ALBUM_REPLAYGAIN);
+//            refreshReplayGainValues();
+//        }
+            else if (PrefKeys.IGNORE_AUDIOFOCUS_LOSS.equals(key)) {
+            mIgnoreAudioFocusLoss = settings.getBoolean(PrefKeys.IGNORE_AUDIOFOCUS_LOSS, PrefDefaults.IGNORE_AUDIOFOCUS_LOSS);
+        }
+//            else if (PrefKeys.SELECTED_THEME.equals(key) || PrefKeys.DISPLAY_MODE.equals(key)) {
+//            // Theme changed: trigger a restart of all registered activites
+//            ArrayList<TimelineCallback> list = sCallbacks;
+//            for (int i = list.size(); --i != -1; )
+//                list.get(i).recreate();
+//        }
+		/* Tell androids cloud-backup manager that we just changed our preferences */
+        (new BackupManager(this)).dataChanged();
+    }
 
     //===============SharedPreferences.OnSharedPreferenceChangeListener===============//
-//    @Override
-//    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-//
-//    }
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        loadPreference(key);
+    }
 }

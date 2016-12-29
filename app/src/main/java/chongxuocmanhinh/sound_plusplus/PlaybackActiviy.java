@@ -405,6 +405,7 @@ public abstract class PlaybackActiviy extends Activity
 
 
     static final int MENU_SORT = 1;
+    static final int MENU_PREFS = 2;
     static final int MENU_PLAYBACK = 5;
     static final int MENU_SEARCH = 7;
     static final int MENU_CLEAR_QUEUE = 11;
@@ -415,7 +416,7 @@ public abstract class PlaybackActiviy extends Activity
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        //menu.add(0)
+        menu.add(0, MENU_PREFS, 10, R.string.settings).setIcon(R.drawable.ic_menu_preferences);
         return true;
     }
 
@@ -423,6 +424,9 @@ public abstract class PlaybackActiviy extends Activity
     public boolean onOptionsItemSelected(MenuItem item) {
         Log.d("TestOptionMenu","Playback ACtivity onOptionsItemSelected");
         switch (item.getItemId()){
+            case MENU_PREFS:
+                startActivity(new Intent(this, PreferencesActivity.class));
+                break;
             case MENU_CLEAR_QUEUE:
                 PlaybackService.get(this).clearQueue();
                 break;

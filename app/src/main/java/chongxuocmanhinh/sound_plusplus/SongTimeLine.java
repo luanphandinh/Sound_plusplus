@@ -250,7 +250,7 @@ public class SongTimeLine {
         long data = queryTask.data;
 
         int count = cursor.getCount();
-
+        int added = 0;
         /**
          * Nếu ko query được gì thì thoats
          */
@@ -309,6 +309,7 @@ public class SongTimeLine {
                 }
 
                 timeline.add(addAtPos++,song);
+                added++;
                 Log.d("Testtt","song : " + mSongs.get(index).path);
 
                 if(jumpSong == null){
@@ -325,7 +326,7 @@ public class SongTimeLine {
         }
 
         changed();
-        return 1;
+        return added;
     }
     /**
      * Broadcasts that the timeline state has changed.

@@ -15,4 +15,5 @@ public class PrefDefaults {
     public static final boolean COVERLOADER_SOUNDPLUSPLUS = true;
     public static final boolean COVERLOADER_SHADOW = true;
     public static final boolean COVER_ON_LOCKSCREEN = true;
+    public static final String  DEFAULT_ACTION_INT = "6";
 }

@@ -40,7 +40,8 @@
         <activity
             android:name="chongxuocmanhinh.sound_plusplus.PermissionRequestActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-
+        <activity
+            android:name="chongxuocmanhinh.sound_plusplus.PreferencesActivity" />
         <service android:name=".PlaybackService"></service>
     </application>
 
