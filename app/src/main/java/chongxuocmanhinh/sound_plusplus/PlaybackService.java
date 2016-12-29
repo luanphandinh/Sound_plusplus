@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.app.backup.BackupManager;
+import android.appwidget.AppWidgetManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
@@ -338,6 +339,9 @@ public class PlaybackService extends Service
 
         mLooper = thread.getLooper();
         mHandler = new Handler(mLooper, this);
+
+        initWidgets();
+
         updateState(state);
         setCurrentSong(0);
 //        mState !=
@@ -977,7 +981,7 @@ public class PlaybackService extends Service
             for (int i = list.size(); --i != -1; )
                 list.get(i).setSong(uptime, song);
         }
-
+        updateWidgets();
         mRemoteControlClient.updateRemote(mCurrentSong, mState, mForceNotificationVisible);
     }
 
@@ -1559,4 +1563,31 @@ public class PlaybackService extends Service
         loadPreference(key);
     }
 
+
+    public int getState()
+    {
+        synchronized (mStateLock) {
+            return mState;
+        }
+    }
+
+    //Widgets
+    /**
+     * Check if there are any instances of each widget.
+     */
+    private void initWidgets()
+    {
+        AppWidgetManager manager = AppWidgetManager.getInstance(this);
+        FourWhiteWidget.checkEnabled(this, manager);
+    }
+    /**
+     * Update the widgets with the current song and state.
+     */
+    private void updateWidgets()
+    {
+        AppWidgetManager manager = AppWidgetManager.getInstance(this);
+        Song song = mCurrentSong;
+        int state = mState;
+        FourWhiteWidget.updateWidget(this, manager, song, state);
+    }
 }
