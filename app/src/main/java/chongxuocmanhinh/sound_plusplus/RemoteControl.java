@@ -15,6 +15,7 @@ public class RemoteControl {
                 new RemoteControlImplLp(context) :
                 new RemoteControlImplICS(context)//Dùng cho android 4.x trở xuống
         );
+        //return new RemoteControlImplLp(context);
     }
 
     /**

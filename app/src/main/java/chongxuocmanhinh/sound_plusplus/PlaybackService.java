@@ -25,6 +25,7 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
+import android.widget.Toast;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -671,10 +672,21 @@ public class PlaybackService extends Service
         switch (query.mode) {
             case SongTimeLine.MODE_PLAY:
             case SongTimeLine.MODE_PLAY_ID_FIRST:
+                text = R.plurals.playing;
                 if (count != 0 && (mState & FLAG_PLAYING) == 0)
                     setFlag(FLAG_PLAYING);
                 break;
+            case SongTimeLine.MODE_FLUSH_AND_PLAY_NEXT:
+            case SongTimeLine.MODE_ENQUEUE:
+            case SongTimeLine.MODE_ENQUEUE_ID_FIRST:
+            case SongTimeLine.MODE_ENQUEUE_AS_NEXT:
+                text = R.plurals.enqueued;
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid add mode: " + query.mode);
         }
+
+        Toast.makeText(this, getResources().getQuantityString(text, count, count), Toast.LENGTH_SHORT).show();
     }
 
     @Nullable
