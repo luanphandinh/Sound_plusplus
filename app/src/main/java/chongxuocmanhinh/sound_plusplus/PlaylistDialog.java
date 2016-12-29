@@ -77,7 +77,7 @@ public class PlaylistDialog extends DialogFragment implements DialogInterface.On
         mItemValue=new long[1+count];
 
         // Index 0 luôn luôn là 'New Playlist...'
-        mItemName[0]="New playlist...";
+        mItemName[0]=getResources().getString(R.string.new_playlist);
         mItemValue[0]=-1;
 
         for(int i=0;i<count;i++){
@@ -88,7 +88,7 @@ public class PlaylistDialog extends DialogFragment implements DialogInterface.On
 
         // Khi tất cả các name đều có xong: có thể show dialog
         AlertDialog.Builder builder=new AlertDialog.Builder(getActivity());
-        builder.setTitle("Add to playlist...").setItems(mItemName,this);
+        builder.setTitle(R.string.add_to_playlist).setItems(mItemName,this);
         return builder.create();
     }
 

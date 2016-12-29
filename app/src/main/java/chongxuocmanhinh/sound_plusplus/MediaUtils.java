@@ -482,10 +482,11 @@ public class MediaUtils {
 
     /**
      * Returns the first matching song (or NULL) of given type + id combination
+     * trả về bài hát nào match vs type + id đầu tiên (hoặc NULL)
      *
-     * @param resolver A ContentResolver to use.
-     * @param type The MediaTye to query
-     * @param id The id of given type to query
+     * @param resolver ContentResolver.
+     * @param type MediaType để query
+     * @param id Id của type để query
      */
     public static Song getSongByTypeId(ContentResolver resolver, int type, long id) {
         Song song = new Song(-1);
@@ -500,5 +501,6 @@ public class MediaUtils {
         }
         return song.isFilled() ? song : null;
     }
+
 
 }

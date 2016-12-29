@@ -686,6 +686,25 @@ public class LibraryActivity extends SlidingPlaybackActivity
                 PlaylistDialog plDialog = new PlaylistDialog( this,intent,(id==LibraryAdapter.HEADER_ID?(MediaAdapter)mCurrentAdapter:null));
                 plDialog.show(getFragmentManager(), "PlaylistDialog");
                 break;
+            /**********************created by lordhung*****************************/
+            // tạm thời chỉ để xóa playlist
+            case CTX_MENU_DELETE:
+                String delete_message = getString(R.string.delete_item, intent.getStringExtra("title"));
+                AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+                dialog.setTitle(R.string.delete);
+                dialog
+                        .setMessage(delete_message)
+                        .setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                mHandler.sendMessage(mHandler.obtainMessage(MSG_DELETE, intent));
+                            }
+                        })
+                        .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                            }
+                        });
+                dialog.create().show();
+                break;
             default:
                 return super.onContextItemSelected(item);
         }

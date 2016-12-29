@@ -66,7 +66,7 @@ public class PlaylistInputDialog extends DialogFragment implements DialogInterfa
         mEditText.addTextChangedListener(this);
 
         AlertDialog.Builder builder=new AlertDialog.Builder(getActivity());
-        builder.setTitle("Choose playlist name")
+        builder.setTitle(R.string.choose_playlist_name)
                 .setView(mEditText)
                 .setPositiveButton(mActionRes,this)
                 .setNegativeButton(android.R.string.cancel,this);

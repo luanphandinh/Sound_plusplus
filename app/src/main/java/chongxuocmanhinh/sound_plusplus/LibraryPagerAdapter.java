@@ -174,7 +174,11 @@ public class LibraryPagerAdapter
     private final ContentObserver mPlaylistObserver = new ContentObserver(null) {
         @Override
         public void onChange(boolean selfChange) {
-            super.onChange(selfChange);
+            /**
+             * thêm sửa xóa playlist sẽ requery lại playlists
+             * */
+            if(mPlaylistAdapter!=null)
+                postRequestRequery(mPlaylistAdapter);
         }
     };
 

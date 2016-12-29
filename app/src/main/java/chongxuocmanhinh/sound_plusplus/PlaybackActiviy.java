@@ -164,7 +164,7 @@ public abstract class PlaybackActiviy extends Activity
     /**
      * Remove 1 mdeia object
      */
-    protected static final int MSG_DELETE = 4;
+    protected static final int MSG_DELETE_PLAYLIST = 4;
     /**
      * Lưu queue hiện tại như 1 playlist
      */
@@ -213,7 +213,9 @@ public abstract class PlaybackActiviy extends Activity
                 Playlist.renamePlaylist(getContentResolver(), playlistTask.playlistId, playlistTask.name);
                 break;
             }
-            case MSG_DELETE: {
+            // tạm thời chỉ dùng để xóa playlist
+            case MSG_DELETE_PLAYLIST: {
+                deletePlaylist((Intent)message.obj);
                 break;
             }
             case MSG_NOTIFY_PLAYLIST_CHANGED: {
@@ -281,6 +283,32 @@ public abstract class PlaybackActiviy extends Activity
         });
     }
 
+    /**
+     * Delete the media represented by the given intent and show a Toast
+     * informing the user of this.
+     *
+     * Tạm thời chỉ dùng để xóa playlist, hiện toast message
+     *
+     * @param intent An intent created with
+     * {@link LibraryAdapter#createData(View)}.
+     */
+    private void deletePlaylist(Intent intent)
+    {
+        int type = intent.getIntExtra("type", MediaUtils.TYPE_INVALID);
+        long id = intent.getLongExtra("id", LibraryAdapter.INVALID_ID);
+        String message = null;
+        Resources res = getResources();
+
+        if(type==MediaUtils.TYPE_PLAYLIST){
+            Playlist.deletePlaylist(getContentResolver(), id);
+        }
+
+        if (message == null) {
+            message = res.getString(R.string.deleted_item, intent.getStringExtra("title"));
+        }
+
+        showToast(message, Toast.LENGTH_SHORT);
+    }
     /********************************************************/
 
 
