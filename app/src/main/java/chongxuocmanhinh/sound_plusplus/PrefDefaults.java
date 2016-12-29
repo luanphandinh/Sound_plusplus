@@ -16,4 +16,7 @@ public class PrefDefaults {
     public static final boolean COVERLOADER_SHADOW = true;
     public static final boolean COVER_ON_LOCKSCREEN = true;
     public static final String  DEFAULT_ACTION_INT = "6";
+    public static final boolean ENABLE_SHAKE = false;
+    public static final Action  SHAKE_ACTION = Action.NextSong;
+    public static final int     SHAKE_THRESHOLD = 80;
 }

@@ -14,6 +14,10 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Build;
@@ -23,6 +27,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
@@ -55,6 +60,7 @@ public class PlaybackService extends Service
                  */
                 , AudioManager.OnAudioFocusChangeListener
                 , SharedPreferences.OnSharedPreferenceChangeListener
+                , SensorEventListener
 {
     /**
      * Tên của file lưu các trạng thái của service
@@ -263,6 +269,32 @@ public class PlaybackService extends Service
     private boolean mIgnoreAudioFocusLoss;
     private boolean mTransientAudioLoss;
 
+    /**
+     * SensorManager service.
+     * Sử dụng cho việc cảm biến lắc để thực hiện các action trong setttings.
+     */
+    private SensorManager mSensorManager;
+    /**
+     * Biên đồ  lần cuối cùng thiết bị nhận được acceleration.
+     */
+    private double mAccelLast;
+    /**
+     * Filtered acceleration used for shake detection.
+     */
+    private double mAccelFiltered;
+    /**
+     * Thời gian đã trôi qua kể từ lần cuối thực hiện shakeAction.
+     */
+    private long mLastShakeTime;
+    /**
+     * Lực lắc mạnh nhất cần cho việc thực hiện shakeAction.
+     */
+    private double mShakeThreshold;
+    /**
+     * What to do when an accelerometer shake is detected.
+     */
+    private Action mShakeAction;
+
     @Override
     public void onCreate() {
         HandlerThread thread = new HandlerThread("PlaybackService", Process.THREAD_PRIORITY_DEFAULT);
@@ -289,6 +321,9 @@ public class PlaybackService extends Service
         mHeadsetPause = getSettings(this).getBoolean(PrefKeys.HEADSET_PAUSE, PrefDefaults.HEADSET_PAUSE);
         mIgnoreAudioFocusLoss = settings.getBoolean(PrefKeys.IGNORE_AUDIOFOCUS_LOSS, PrefDefaults.IGNORE_AUDIOFOCUS_LOSS);
 
+
+        mShakeAction = settings.getBoolean(PrefKeys.ENABLE_SHAKE, PrefDefaults.ENABLE_SHAKE) ? Action.getAction(settings, PrefKeys.SHAKE_ACTION, PrefDefaults.SHAKE_ACTION) : Action.Nothing;
+        mShakeThreshold = settings.getInt(PrefKeys.SHAKE_THRESHOLD, PrefDefaults.SHAKE_THRESHOLD) / 10.0f;
         CoverCache.mCoverLoadMode = settings.getBoolean(PrefKeys.COVERLOADER_ANDROID, PrefDefaults.COVERLOADER_ANDROID) ? CoverCache.mCoverLoadMode | CoverCache.COVER_MODE_ANDROID : CoverCache.mCoverLoadMode & ~(CoverCache.COVER_MODE_ANDROID);
         CoverCache.mCoverLoadMode = settings.getBoolean(PrefKeys.COVERLOADER_SOUNDPLUSPLUS, PrefDefaults.COVERLOADER_SOUNDPLUSPLUS) ? CoverCache.mCoverLoadMode | CoverCache.COVER_MODE_VANILLA : CoverCache.mCoverLoadMode & ~(CoverCache.COVER_MODE_VANILLA);
         CoverCache.mCoverLoadMode = settings.getBoolean(PrefKeys.COVERLOADER_SHADOW , PrefDefaults.COVERLOADER_SHADOW)  ? CoverCache.mCoverLoadMode | CoverCache.COVER_MODE_SHADOW  : CoverCache.mCoverLoadMode & ~(CoverCache.COVER_MODE_SHADOW);
@@ -310,6 +345,10 @@ public class PlaybackService extends Service
         synchronized (sWait) {
             sWait.notifyAll();
         }
+
+        mAccelFiltered = 0.0f;
+        mAccelLast = SensorManager.GRAVITY_EARTH;
+        setupSensor();
     }
 
 
@@ -390,6 +429,17 @@ public class PlaybackService extends Service
         return !mAudioManager.isWiredHeadsetOn() && !mAudioManager.isBluetoothA2dpOn() && !mAudioManager.isBluetoothScoOn();
     }
 
+
+    private void setupSensor(){
+        if (mShakeAction == Action.Nothing) {
+            if (mSensorManager != null)
+                mSensorManager.unregisterListener(this);
+        } else {
+            if (mSensorManager == null)
+                mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+            mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_UI);
+        }
+    }
 
     public static void addTimelineCallback(TimelineCallback consumer) {
         sCallbacks.add(consumer);
@@ -601,6 +651,7 @@ public class PlaybackService extends Service
 
                 mHandler.sendEmptyMessageDelayed(MSG_ENTER_SLEEP_STATE, SLEEP_STATE_DELAY);
             }
+            setupSensor();
         }
 
         if ((toggled & FLAG_NO_MEDIA) != 0 && (state & FLAG_NO_MEDIA) != 0) {
@@ -1096,6 +1147,135 @@ public class PlaybackService extends Service
 
         return sSettings;
     }
+    //=============================SensorEventListener================================//
+    /**
+     * Minimum time in milliseconds between shake actions.
+     */
+    private static final int MIN_SHAKE_PERIOD = 500;
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        double x = event.values[0];
+        double y = event.values[1];
+        double z = event.values[2];
+
+        double accel = Math.sqrt(x*x + y*y + z*z);
+        double delta = accel - mAccelLast;
+        mAccelLast = accel;
+
+        double filtered = mAccelFiltered * 0.9f + delta;
+        mAccelFiltered = filtered;
+
+        if (filtered > mShakeThreshold) {
+            long now = SystemClock.elapsedRealtime();
+            if (now - mLastShakeTime > MIN_SHAKE_PERIOD) {
+                mLastShakeTime = now;
+                performAction(mShakeAction, null);
+            }
+        }
+    }
+    /**
+     * Thực hiện action được nhận.
+     *
+     * @param action The action to execute.
+     * @param receiver Về cơ bản thì việc update thằng  PlaybackActivity với bài hát mới
+     *                 hoặc trạng thái mới từ action.activity sẽ được update theo broadcast như
+     *                 bình thường,việc update ở hàm dưới đây chỉ là thực hiện ngay lập tức
+     */
+    public void performAction(Action action, PlaybackActiviy receiver)
+    {
+        switch (action) {
+            case Nothing:
+                break;
+            case Library:
+                Intent intent = new Intent(this, LibraryActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                break;
+            case PlayPause: {
+                int state = playPause();
+                if (receiver != null)
+                    receiver.setState(state);
+                break;
+            }
+            case NextSong: {
+                Song song = shiftCurrentSong(SongTimeLine.SHIFT_NEXT_SONG);
+                if (receiver != null)
+                    receiver.setSong(song);
+                break;
+            }
+            case PreviousSong: {
+                Song song = shiftCurrentSong(SongTimeLine.SHIFT_PREVIOUS_SONG);
+                if (receiver != null)
+                    receiver.setSong(song);
+                break;
+            }
+            case NextAlbum: {
+                Song song = shiftCurrentSong(SongTimeLine.SHIFT_NEXT_ALBUM);
+                if (receiver != null)
+                    receiver.setSong(song);
+                break;
+            }
+            case PreviousAlbum: {
+                Song song = shiftCurrentSong(SongTimeLine.SHIFT_PREVIOUS_ALBUM);
+                if (receiver != null)
+                    receiver.setSong(song);
+                break;
+            }
+            case Repeat: {
+                int state = cycleFinishAction();
+                if (receiver != null)
+                    receiver.setState(state);
+                break;
+            }
+            case Shuffle: {
+                int state = cycleShuffle();
+                if (receiver != null)
+                    receiver.setState(state);
+                break;
+            }
+            case EnqueueAlbum:
+                enqueueFromSong(mCurrentSong, MediaUtils.TYPE_ALBUM);
+                break;
+            case EnqueueArtist:
+                enqueueFromSong(mCurrentSong, MediaUtils.TYPE_ARTIST);
+                break;
+            case EnqueueGenre:
+                enqueueFromSong(mCurrentSong, MediaUtils.TYPE_GENRE);
+                break;
+            case ClearQueue:
+                clearQueue();
+                //showMirrorLinkSafeToast(R.string.queue_cleared, Toast.LENGTH_SHORT);
+                break;
+            case ToggleControls:
+            case ShowQueue:
+                // These are NOOPs here and should be handled in FullPlaybackActivity
+                break;
+            case SeekForward:
+                if (mCurrentSong != null) {
+                    mPendingSeekSong = mCurrentSong.id;
+                    mPendingSeek = getPosition() + 10000;
+                    // We 'abuse' setCurrentSong as it will stop the playback and restart it
+                    // at the new position, taking care of the ui update
+                    setCurrentSong(0);
+                }
+                break;
+            case SeekBackward:
+                if (mCurrentSong != null) {
+                    mPendingSeekSong = mCurrentSong.id;
+                    mPendingSeek = getPosition() - 10000;
+                    if (mPendingSeek < 1) mPendingSeek = 1; // must at least be 1
+                    setCurrentSong(0);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid action: " + action);
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
 
     private class Receiver extends BroadcastReceiver{
         @Override
@@ -1347,13 +1527,13 @@ public class PlaybackService extends Service
             mHeadsetOnly = settings.getBoolean(key, PrefDefaults.HEADSET_ONLY);
             if (mHeadsetOnly && isSpeakerOn())
                 unsetFlag(FLAG_PLAYING);
+        } else if (PrefKeys.ENABLE_SHAKE.equals(key) || PrefKeys.SHAKE_ACTION.equals(key)) {
+            mShakeAction = settings.getBoolean(PrefKeys.ENABLE_SHAKE, PrefDefaults.ENABLE_SHAKE) ? Action.getAction(settings, PrefKeys.SHAKE_ACTION, PrefDefaults.SHAKE_ACTION) : Action.Nothing;
+            setupSensor();
+        } else if (PrefKeys.SHAKE_THRESHOLD.equals(key)) {
+            mShakeThreshold = settings.getInt(PrefKeys.SHAKE_THRESHOLD, PrefDefaults.SHAKE_THRESHOLD) / 10.0f;
         }
-//        } else if (PrefKeys.ENABLE_SHAKE.equals(key) || PrefKeys.SHAKE_ACTION.equals(key)) {
-//            mShakeAction = settings.getBoolean(PrefKeys.ENABLE_SHAKE, PrefDefaults.ENABLE_SHAKE) ? Action.getAction(settings, PrefKeys.SHAKE_ACTION, PrefDefaults.SHAKE_ACTION) : Action.Nothing;
-//            setupSensor();
-//        } else if (PrefKeys.SHAKE_THRESHOLD.equals(key)) {
-//            mShakeThreshold = settings.getInt(PrefKeys.SHAKE_THRESHOLD, PrefDefaults.SHAKE_THRESHOLD) / 10.0f;
-//        } else if (PrefKeys.ENABLE_TRACK_REPLAYGAIN.equals(key)) {
+        //else if (PrefKeys.ENABLE_TRACK_REPLAYGAIN.equals(key)) {
 //            mReplayGainTrackEnabled = settings.getBoolean(PrefKeys.ENABLE_TRACK_REPLAYGAIN, PrefDefaults.ENABLE_TRACK_REPLAYGAIN);
 //            refreshReplayGainValues();
 //        } else if (PrefKeys.ENABLE_ALBUM_REPLAYGAIN.equals(key)) {
